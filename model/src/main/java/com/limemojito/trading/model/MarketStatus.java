@@ -52,7 +52,7 @@ public class MarketStatus {
 
     /**
      * Checks if the FX market is open at the given instant.  Open is defined as the instant being after or equal to the
-     * Sydney session start and less than or equal to the New York session close.  This calcuation takes into account
+     * Sydney session start and less than or equal to the New York session close.  This calculation takes into account
      * session daylight savings times, etc.
      *
      * @param instant The UTC instant to check

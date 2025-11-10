@@ -71,7 +71,7 @@ public class MarketStatusTest {
     }
 
     @Test
-    public void shouldBeClosedForSaturdayInSydneyBy4pminNY() {
+    public void shouldBeClosedForSaturdayInSydneyBy4pmInNY() {
         assertState("2019-07-06T07:00:00+10:00", CLOSED);
     }
 
