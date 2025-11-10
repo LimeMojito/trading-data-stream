@@ -19,8 +19,8 @@ package com.limemojito.trading.model.stream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.ObjectMapperPrototype;
 import com.limemojito.test.JsonAsserter;
-import com.limemojito.test.ObjectMapperPrototype;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.bar.Bar;

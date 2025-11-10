@@ -18,9 +18,9 @@
 package com.limemojito.trading.model.bar;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.JsonLoader;
+import com.limemojito.json.ObjectMapperPrototype;
 import com.limemojito.test.JsonAsserter;
-import com.limemojito.test.JsonLoader;
-import com.limemojito.test.ObjectMapperPrototype;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.UtcTimeUtils;
 import org.junit.jupiter.api.Test;
@@ -63,7 +63,7 @@ public class BarTest {
     }
 
     @Test
-    public void barShouldBeJsonable() throws Exception {
+    public void barShouldBeJsonable() {
         final Bar bar = ModelPrototype.createBar(REALTIME_UUID, "EURUSD", H1, 1528174800000L);
         assertThat(bar.getEndMillisecondsUtc()).isEqualTo(bar.getStartMillisecondsUtc() + H1.getDurationMilliseconds() - 1L);
 
@@ -77,7 +77,7 @@ public class BarTest {
     }
 
     @Test
-    public void shouldBeStableJson() throws Exception {
+    public void shouldBeStableJson() {
         ObjectMapper objectMapper = ObjectMapperPrototype.buildBootLikeMapper();
         JsonLoader loader = new JsonLoader(objectMapper);
 

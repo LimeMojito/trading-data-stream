@@ -20,13 +20,13 @@
 
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>trading-data-stream</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <parent>
         <groupId>com.limemojito.oss.standards</groupId>
         <artifactId>oss-maven-standards</artifactId>
-        <version>14.0.19</version>
+        <version>15.3.5</version>
         <relativePath />
     </parent>
 

@@ -20,7 +20,7 @@ package com.limemojito.trading.model;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.limemojito.test.JsonLoader;
+import com.limemojito.json.JsonLoader;
 import com.limemojito.trading.model.StreamData.StreamSource;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.Tick;

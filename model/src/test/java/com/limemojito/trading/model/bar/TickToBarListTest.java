@@ -18,8 +18,8 @@
 package com.limemojito.trading.model.bar;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.limemojito.test.JsonLoader;
-import com.limemojito.test.ObjectMapperPrototype;
+import com.limemojito.json.JsonLoader;
+import com.limemojito.json.ObjectMapperPrototype;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickInputStream;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import org.junit.jupiter.api.Test;
