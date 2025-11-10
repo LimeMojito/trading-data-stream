@@ -48,6 +48,7 @@ import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonS
 @Slf4j
 public class S3DukascopyCache extends FallbackDukascopyCache {
 
+    private static final int TO_KB = 1_024;
     private final AmazonS3 s3;
     private final String bucketName;
     private final ObjectMapper mapper;
@@ -102,7 +103,7 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
             metadata.setContentType(contentType);
             metadata.setContentDisposition(path);
             try (ByteArrayInputStream s3Input = new ByteArrayInputStream(bytes)) {
-                log.info("Saving to s3://{}/{}", bucketName, path);
+                log.info("Saving to s3://{}/{} size {} KB", bucketName, path, bytes.length / TO_KB);
                 s3.putObject(new PutObjectRequest(bucketName, path, s3Input, metadata));
             }
         }

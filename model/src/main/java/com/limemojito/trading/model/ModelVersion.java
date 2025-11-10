@@ -17,6 +17,15 @@
 
 package com.limemojito.trading.model;
 
+/**
+ * Declares the semantic version of the trading data stream model.
+ * <p>
+ * Use this version string in serialized payloads and clients to ensure compatibility between
+ * producers and consumers of the model types found in this package.
+ */
 public interface ModelVersion {
+    /**
+     * Current version of the model contract exposed by classes in {@code com.limemojito.trading.model}.
+     */
     String VERSION = "1.0";
 }

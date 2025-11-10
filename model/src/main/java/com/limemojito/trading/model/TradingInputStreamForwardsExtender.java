@@ -26,20 +26,27 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Helper to progressively extend a bar search forwards in time.
+ * <p>
+ * Creates a {@link TradingInputStream} that repeatedly issues searches for subsequent ranges until the
+ * desired number of bars are collected.
+ */
 @Slf4j
 public final class TradingInputStreamForwardsExtender {
 
     /**
-     * Extend searches to complete stream.
+     * Build an input stream that paginates forwards from the given {@code startTime} and aggregates
+     * ticks into bars for the supplied period, up to {@code barCountAfter} bars.
      *
      * @param symbol        Symbol to search.
-     * @param period        Period to search.
-     * @param startTime     Start time to search.
-     * @param barCountAfter Number of bars to retrieve after start time
-     * @param barVisitor    Visitor to apply
+     * @param period        Period to aggregate.
+     * @param startTime     Start-instant (inclusive) for the first page.
+     * @param barCountAfter Number of bars to retrieve after start time.
+     * @param barVisitor    Visitor to apply to each bar as it is produced.
      * @param tradingSearch Search engine to use.
      * @return a bar input stream
-     * @throws IOException on an io failure.
+     * @throws IOException on an IO failure.
      */
     public static TradingInputStream<Bar> extend(String symbol,
                                                  Bar.Period period,

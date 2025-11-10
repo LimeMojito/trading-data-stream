@@ -22,20 +22,49 @@ import java.time.LocalDateTime;
 
 import static java.time.ZoneOffset.UTC;
 
+/**
+ * Small helpers for converting to/from UTC-based epoch milliseconds.
+ */
 public class UtcTimeUtils {
 
+    /**
+     * Converts a UTC {@link LocalDateTime} to epoch milliseconds.
+     * <p>
+     * Note: the input is interpreted at {@link java.time.ZoneOffset#UTC}.
+     *
+     * @param dateTime a UTC local date-time
+     * @return epoch milliseconds since 1970-01-01T00:00:00Z
+     */
     public static long toEpochMillis(LocalDateTime dateTime) {
         return toEpochMillis(dateTime.toInstant(UTC));
     }
 
+    /**
+     * Converts an {@link Instant} to epoch milliseconds.
+     *
+     * @param instant an instant in time
+     * @return epoch milliseconds since 1970-01-01T00:00:00Z
+     */
     public static long toEpochMillis(Instant instant) {
         return instant.toEpochMilli();
     }
 
+    /**
+     * Converts epoch milliseconds to a UTC {@link LocalDateTime}.
+     *
+     * @param epochMillis epoch milliseconds since 1970-01-01T00:00:00Z
+     * @return a UTC local date-time
+     */
     public static LocalDateTime toLocalDateTimeUtc(long epochMillis) {
         return toInstant(epochMillis).atZone(UTC).toLocalDateTime();
     }
 
+    /**
+     * Creates an {@link Instant} from epoch milliseconds.
+     *
+     * @param epochMillis epoch milliseconds since 1970-01-01T00:00:00Z
+     * @return an instant
+     */
     public static Instant toInstant(long epochMillis) {
         return Instant.ofEpochMilli(epochMillis);
     }

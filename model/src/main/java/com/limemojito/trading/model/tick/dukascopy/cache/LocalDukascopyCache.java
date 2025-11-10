@@ -22,9 +22,9 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -53,6 +53,7 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
      * Property for overriding local cache location.  Defaults to "user.home"/.dukascopy/.
      */
     public static final String PROP_DIR = DirectDukascopyNoCache.class.getPackageName() + ".localCacheDir";
+    private static final int TO_KB = 1_024;
 
     private final ObjectMapper mapper;
     private final Path cacheDirectory;
@@ -129,8 +130,11 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
             Path cachePath = Path.of(cacheDirectory.toString(), path);
             //noinspection ResultOfMethodCallIgnored
             cachePath.toFile().getParentFile().mkdirs();
+            log.debug("Saving {} to local cache {}", path, cachePath);
             Files.copy(input, cachePath);
-            log.debug("Saved {} in local cache {}", path, cachePath);
+            log.debug("Saved {} in local cache {} {}KB", path, cachePath, Files.size(cachePath) / TO_KB);
+        } else {
+            log.warn("Skipped saving {} to local cache as it already exists", path);
         }
     }
 

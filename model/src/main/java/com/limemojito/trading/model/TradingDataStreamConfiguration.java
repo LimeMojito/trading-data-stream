@@ -40,21 +40,49 @@ import jakarta.validation.Validator;
  */
 @Configuration
 public class TradingDataStreamConfiguration {
+    /**
+     * Generator for Dukascopy file paths used by search and caching components.
+     *
+     * @return a new {@link DukascopyPathGenerator}
+     */
     @Bean
     public DukascopyPathGenerator pathGenerator() {
         return new DukascopyPathGenerator();
     }
 
+    /**
+     * Local cache chain that first checks the filesystem and falls back to direct (no-cache) retrieval.
+     *
+     * @param mapper Jackson object mapper for metadata persistence
+     * @return a {@link DukascopyCache} that reads/writes to local disk and falls back to network on misses
+     */
     @Bean
     public DukascopyCache localCacheChain(ObjectMapper mapper) {
         return new LocalDukascopyCache(mapper, new DirectDukascopyNoCache());
     }
 
+    /**
+     * Search implementation backed by Dukascopy data and the configured cache chain.
+     *
+     * @param pathGenerator generator for data paths
+     * @param cache         cache implementation to read/write data
+     * @param validator     bean validation instance used by aggregators
+     * @return a {@link TradingSearch} implementation
+     */
     @Bean
     public TradingSearch tickSearch(DukascopyPathGenerator pathGenerator, DukascopyCache cache, Validator validator) {
         return new DukascopySearch(validator, cache, pathGenerator);
     }
 
+    /**
+     * Aggregates ticks into bars and notifies a callback as each bar completes.
+     * Prototype scope so each request gets a fresh aggregator instance.
+     *
+     * @param validator         bean validation instance
+     * @param notifier          callback notified when bars complete
+     * @param aggregationPeriod target bar period for aggregation
+     * @return a {@link TickBarNotifyingAggregator}
+     */
     @Scope("prototype")
     @Bean
     public TickBarNotifyingAggregator tickBarAggregator(Validator validator,

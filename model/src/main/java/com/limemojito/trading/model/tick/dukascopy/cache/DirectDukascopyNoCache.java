@@ -20,15 +20,15 @@ package com.limemojito.trading.model.tick.dukascopy.cache;
 import com.google.common.util.concurrent.RateLimiter;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.validation.Validator;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.util.concurrent.RateLimiter.create;
@@ -44,13 +44,13 @@ import static java.lang.System.getProperty;
 @SuppressWarnings("UnstableApiUsage")
 public class DirectDukascopyNoCache implements DukascopyCache {
     /**
-     * Defaults to 10.00ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (500) if you hit the
-     * servers too hard.
+     * Defaults to 1.0 ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (50X) if you hit the
+     * servers too hard, or they do a sneaky 30s delay before data is returned.  This has a LONG timeout if it occurs.
      */
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
 
     /**
-     * Defaults to 2.0 s to pause if a server 500 is encountered.  This may indicate that we are over rate.
+     * Defaults to 5.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
      * Exponential back-off over the number of retries.
      *
      * @see #PROP_RETRY_COUNT
@@ -70,8 +70,8 @@ public class DirectDukascopyNoCache implements DukascopyCache {
      */
     public static final String PROP_URL = DirectDukascopyNoCache.class.getPackageName() + ".url";
 
-    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "10"));
-    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "1.0"));
+    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "1.0"));
+    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "5.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
     private static final RateLimiter RATE_LIMITER = create(PERMITS_PER_SECOND);
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
@@ -84,6 +84,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
         // play nice with Dukascopy's free data.  And if you don't they stop sending data.
         BufferedInputStream stream = fetchWithRetry(url, 1);
+        log.debug("Stream Retrieved from {}", url);
         retrievePathCounter.incrementAndGet();
         return stream;
     }
@@ -131,7 +132,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
 
         @Override
         public InputStream openStream() throws IOException {
-            return new URL(url).openStream();
+            return URI.create(url).toURL().openStream();
         }
 
         public String toString() {
@@ -150,6 +151,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     BufferedInputStream fetchWithRetry(DataSource url, int callCount) throws IOException {
         try {
             // keep the rate limit here as extra insurance during retries
+            log.debug("Rate limit: {} attempt acquire", RATE_LIMITER.getRate());
             final double waited = RATE_LIMITER.acquire();
             log.info("Loading from {}, waited {}s", url, waited);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
