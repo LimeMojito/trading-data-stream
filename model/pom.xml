@@ -117,4 +117,21 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- short retries for testing purposes -->
+                        <com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
+                            1
+                        </com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

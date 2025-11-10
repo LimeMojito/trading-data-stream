@@ -19,6 +19,7 @@ package com.limemojito.trading.model.tick.dukascopy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.TickInputStreamToCsv;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
@@ -70,7 +71,7 @@ public class DukascopyUtils {
     public static DukascopySearch standaloneSetup(Validator validator, ObjectMapper mapper) {
         if (lazySearch == null) {
             final DukascopyCache cacheChain = new LocalDukascopyCache(mapper, new DirectDukascopyNoCache());
-            final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator();
+            final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
             lazySearch = new DukascopySearch(validator, cacheChain, pathGenerator);
             log.info("Standalone setup with cache chain {}", cacheChain.getClass().getSimpleName());
         }

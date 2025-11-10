@@ -18,7 +18,8 @@ Library
 
 Check out the source to see a working example in example-cli (Spring Boot command line).
 
-There is an example spring configuration in TradingDataStreamConfiguration suitable for @Import. We suggest the following dependencies for spring
+There is an example spring configuration in TradingDataStreamConfiguration suitable for @Import. We suggest the
+following dependencies for spring
 boot
 
 ```xml
@@ -46,17 +47,26 @@ boot
 # Java Tick Search Example
 
 This example is using the standalone configuration suitable for testing. For Spring container
-usage, please refer to TradingDataStreamConfiguration. Note the standalone setup should **not** be called in a spring container.
+usage, please refer to TradingDataStreamConfiguration. Note the standalone setup should **not** be called in a spring
+container.
 
 ```java
-TradingSearch search=TradingDataStreamConfiguration.standaloneSetup();
-try(TradingInputStream<Tick> ticks = search("EURUSD","2020-01-02T00:00:00Z","2020-01-02T00:59:59Z")){
-    ticks.stream()
-         .foreach(t -> log.info("{} {} bid: {}}, t.getMillisecondsUtc(), t.getSymbol(), t.getBid());
-}
+TradingSearch search = TradingDataStreamConfiguration.standaloneSetup();
+try(
+TradingInputStream<Tick> ticks = search("EURUSD", "2020-01-02T00:00:00Z", "2020-01-02T00:59:59Z")){
+        ticks.
+
+stream()
+         .
+
+foreach(t ->log.
+
+info("{} {} bid: {}}, t.getMillisecondsUtc(), t.getSymbol(), t.getBid());
+             }
 ```
 
-Further examples at https://limemojito.com/reading-dukascopy-bi5-tick-history-with-the-tradingdata-stream-library-for-java/
+Further examples
+at https://limemojito.com/reading-dukascopy-bi5-tick-history-with-the-tradingdata-stream-library-for-java/
 
 ---
 
@@ -212,6 +222,7 @@ source is live | historical
   "streamId": "00000000-0000-0000-0000-000000000000"
 }
 ```
+
 ---
 
 # Version Updates
@@ -243,27 +254,36 @@ mvn versions:update-properties -U
 mvn versions:use-latest-releases -U
 ```
 
-
 ---
 
 # Changes
 
 ## 4.0.0
-* Java 21 as a minimum requirement.  Spring support library upgrades. OSS test library updates and API changes.
-* Severely reduced Dukascopy rate limiter to 1ps as 10ps was too aggressive and lead to Dukascopy throttling without 500 throws.
-* Dukascopy rate throttling has changed to be 30 second limiting on "high" request rates without error throws.  This has been reverse-engineered as there is no documentation. The old three times retry on code 500 behavior has been preserved but with a thirty second exponential backoff.
+
+* Java 21 as a minimum requirement. Spring support library upgrades. OSS test library updates and API changes.
+* Severely reduced Dukascopy rate limiter to 1ps as 10ps was too aggressive and lead to Dukascopy throttling without 500
+  throws.
+* Dukascopy rate throttling has changed to be 30 second limiting on "high" request rates without error throws. This has
+  been reverse-engineered as there is no documentation. The old three times retry on code 500 behavior has been
+  preserved but with a thirty second exponential backoff.
 * Extra debugging logs for tracing rate limiting.
+* MarketStatus check to not request download of data outside FX global market hours.
+* Used configuration to reduce timeout testing to 1s rather than default 30s for production use.
 
 ## 3.0.0
-* Java 17 as a minimum requirement.  Spring support library upgrades.
+
+* Java 17 as a minimum requirement. Spring support library upgrades.
 
 ## 2.1.3
+
 * TradingInputJsonStreams now supports a visitor when loading a stream from json data.
 
 ## 2.1.2
+
 * Added an example spring configuration.
 
 ## 2.1.1
+
 * Library updates.
 
 ## 2.1.0
@@ -286,7 +306,8 @@ mvn versions:use-latest-releases -U
 
 ## 2.0.4
 
-* Correct aggregation bug in count before and count after bar searches. A duplicate bar may have been included in streams due to
+* Correct aggregation bug in count before and count after bar searches. A duplicate bar may have been included in
+  streams due to
   some end searching being inclusive.
 
 ## 2.0.3

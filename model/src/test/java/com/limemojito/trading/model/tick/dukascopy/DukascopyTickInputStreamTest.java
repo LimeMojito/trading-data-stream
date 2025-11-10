@@ -123,7 +123,7 @@ public class DukascopyTickInputStreamTest {
 
         final int expectedSize = 5594;
         assertThat(tickList).hasSize(expectedSize);
-        assertTickEquals(tickList.get(0), 1530766801080L, 116573, 116568, 1.76F, 4.76F);
+        assertTickEquals(tickList.getFirst(), 1530766801080L, 116573, 116568, 1.76F, 4.76F);
         assertTickEquals(tickList.get(expectedSize - 1), 1530770399812L, 116939, 116935, 1.25F, 1.0F);
     }
 

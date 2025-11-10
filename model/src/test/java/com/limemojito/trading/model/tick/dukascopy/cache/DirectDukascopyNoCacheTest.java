@@ -65,7 +65,7 @@ public class DirectDukascopyNoCacheTest {
     public void shouldFetchOk() throws Exception {
         DirectDukascopyNoCache cache = new DirectDukascopyNoCache();
         assertThat(cache.getRetryCount()).isEqualTo(0);
-        try(InputStream input = cache.stream("EURUSD/2019/05/14/21h_ticks.bi5")){
+        try(InputStream input = cache.stream("EURUSD/2019/05/17/21h_ticks.bi5")){
             log.info("Retrieved OK {}b", IOUtils.toByteArray(input).length);
         }
         assertThat(cache.getRetrieveCount()).isEqualTo(1);

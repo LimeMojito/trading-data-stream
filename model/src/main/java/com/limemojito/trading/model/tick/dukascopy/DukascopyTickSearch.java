@@ -94,8 +94,8 @@ public class DukascopyTickSearch extends BaseDukascopySearch {
         };
         log.info("Returning tick stream for {} {} -> {}",
                  symbol,
-                 paths.get(0),
-                 paths.get(paths.size() - 1));
+                 paths.getFirst(),
+                 paths.getLast());
         return TradingInputStream.combine(tickStreamIterator, tickSearchFilter);
     }
 

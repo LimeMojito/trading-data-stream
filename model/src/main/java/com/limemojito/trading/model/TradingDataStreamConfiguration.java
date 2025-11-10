@@ -39,14 +39,25 @@ import org.springframework.context.annotation.Scope;
  */
 @Configuration
 public class TradingDataStreamConfiguration {
+
+    /**
+     * Market status bean
+     *
+     * @return Market status information.
+     */
+    @Bean
+    public MarketStatus marketStatus() {
+        return new MarketStatus();
+    }
+
     /**
      * Generator for Dukascopy file paths used by search and caching components.
      *
      * @return a new {@link DukascopyPathGenerator}
      */
     @Bean
-    public DukascopyPathGenerator pathGenerator() {
-        return new DukascopyPathGenerator();
+    public DukascopyPathGenerator pathGenerator(MarketStatus marketStatus) {
+        return new DukascopyPathGenerator(marketStatus);
     }
 
     /**

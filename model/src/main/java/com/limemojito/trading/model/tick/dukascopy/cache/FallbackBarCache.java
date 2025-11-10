@@ -40,7 +40,7 @@ public abstract class FallbackBarCache implements DukascopyCache.BarCache {
 
     @Override
     public List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException {
-        List<Bar> bars = checkCache(criteria, dayOfPaths.get(0));
+        List<Bar> bars = checkCache(criteria, dayOfPaths.getFirst());
         if (bars == null) {
             cacheMiss.incrementAndGet();
             bars = saveDataFromFallback(criteria, dayOfPaths);
@@ -92,7 +92,7 @@ public abstract class FallbackBarCache implements DukascopyCache.BarCache {
 
     private List<Bar> saveDataFromFallback(BarCriteria criteria, List<String> dukascopyPaths) throws IOException {
         List<Bar> data = fallback.getOneDayOfTicksAsBar(criteria, dukascopyPaths);
-        saveToCache(criteria, dukascopyPaths.get(0), data);
+        saveToCache(criteria, dukascopyPaths.getFirst(), data);
         return data;
     }
 }

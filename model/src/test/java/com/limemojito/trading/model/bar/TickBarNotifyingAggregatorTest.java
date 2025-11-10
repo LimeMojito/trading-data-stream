@@ -61,7 +61,7 @@ public class TickBarNotifyingAggregatorTest {
 
         final List<Bar> values = barCaptor.getAllValues();
         Assertions.assertThat(values).hasSize(12);
-        assert5amBar(values.get(0));
+        assert5amBar(values.getFirst());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class TickBarNotifyingAggregatorTest {
 
         final List<Bar> bars = barCaptor.getAllValues();
         Assertions.assertThat(bars).hasSize(24);
-        assert5amBar(bars.get(0));
+        assert5amBar(bars.getFirst());
         assert6amBar(bars.get(12));
     }
 
@@ -80,7 +80,7 @@ public class TickBarNotifyingAggregatorTest {
 
         final List<Bar> bars = barCaptor.getAllValues();
         Assertions.assertThat(bars).hasSize(12);
-        assert6amBar(bars.get(0));
+        assert6amBar(bars.getFirst());
     }
 
     @Test
@@ -91,7 +91,7 @@ public class TickBarNotifyingAggregatorTest {
 
         final List<Bar> bars = barCaptor.getAllValues();
         Assertions.assertThat(bars).hasSize(36);
-        assert5amBar(bars.get(0));
+        assert5amBar(bars.getFirst());
         assert6amBar(bars.get(12));
         assert7amBar(bars.get(24));
     }

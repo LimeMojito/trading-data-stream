@@ -57,7 +57,7 @@ public class CachePrimerRunner implements ApplicationRunner {
 
     private static String getRequiredValue(ApplicationArguments args, String name) {
         List<String> optionValues = getRequiredValues(args, name);
-        return optionValues.get(0);
+        return optionValues.getFirst();
     }
 
     private static List<String> getRequiredValues(ApplicationArguments args, String name) {

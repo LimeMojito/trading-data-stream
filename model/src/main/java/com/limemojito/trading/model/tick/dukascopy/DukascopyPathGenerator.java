@@ -17,6 +17,8 @@
 
 package com.limemojito.trading.model.tick.dukascopy;
 
+import com.limemojito.trading.model.MarketStatus;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,11 +28,14 @@ import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.limemojito.trading.model.MarketStatus.Status.OPEN;
 import static java.lang.String.format;
 import static java.time.LocalTime.MIDNIGHT;
 import static java.time.ZoneOffset.UTC;
@@ -50,8 +55,12 @@ import static java.util.stream.Collectors.groupingBy;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class DukascopyPathGenerator {
     private final NumberFormat format00 = new DecimalFormat("00");
+
+    private final MarketStatus marketStatus;
+    private final ZoneId utc = ZoneId.of("UTC");
 
     /**
      * Generate Dukascopy hourly file paths grouped by day for the given symbol and time range.
@@ -60,9 +69,9 @@ public class DukascopyPathGenerator {
      * and the outer list is ordered by day.
      * </p>
      *
-     * @param symbol           instrument symbol (e.g. EURUSD)
-     * @param startInstantUtc  inclusive start instant (UTC)
-     * @param endInstantUtc    inclusive end instant (UTC)
+     * @param symbol          instrument symbol (e.g. EURUSD)
+     * @param startInstantUtc inclusive start instant (UTC)
+     * @param endInstantUtc   inclusive end instant (UTC)
      * @return ordered groups of hourly paths, one list per day
      */
     public List<List<String>> generatePathsGroupedByDay(String symbol, Instant startInstantUtc, Instant endInstantUtc) {
@@ -82,9 +91,9 @@ public class DukascopyPathGenerator {
     /**
      * Generate the ordered list of Dukascopy hourly file paths for the given symbol and time range.
      *
-     * @param symbol           instrument symbol (e.g. EURUSD)
-     * @param startInstantUtc  inclusive start instant (UTC)
-     * @param endInstantUtc    inclusive end instant (UTC)
+     * @param symbol          instrument symbol (e.g. EURUSD)
+     * @param startInstantUtc inclusive start instant (UTC)
+     * @param endInstantUtc   inclusive end instant (UTC)
      * @return ordered list of hourly file paths spanning the requested window
      * @throws IllegalArgumentException if {@code endInstantUtc} is not strictly after {@code startInstantUtc}
      */
@@ -149,7 +158,13 @@ public class DukascopyPathGenerator {
             int year = atDay.getYear();
             int monthValue = atDay.getMonthValue();
             int dayOfMonth = atDay.getDayOfMonth();
-            paths.add(dukascopyPath(criteria.getSymbol(), year, monthValue, dayOfMonth, h));
+            Instant utcTime = ZonedDateTime.of(year, monthValue, dayOfMonth, h, 0, 0, 0, utc)
+                                           .toInstant();
+            if (marketStatus.isOpen(utcTime) == OPEN) {
+                paths.add(dukascopyPath(criteria.getSymbol(), year, monthValue, dayOfMonth, h));
+            } else {
+                log.info("Skipping {}/{}/{} {}h market is closed.", year, monthValue, dayOfMonth, h);
+            }
         }
     }
 

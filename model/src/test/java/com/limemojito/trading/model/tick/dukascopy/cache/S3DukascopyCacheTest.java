@@ -22,6 +22,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
@@ -62,7 +63,7 @@ public class S3DukascopyCacheTest {
     private final String bucketName = "bucketName";
     private final ObjectMapper mapper = setupObjectMapper();
     private final Validator validator = setupValidator();
-    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator();
+    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
     private final BarCriteria criteria = new BarCriteria("EURUSD",
                                                          M10,
                                                          Instant.parse("2019-06-07T04:00:00Z"),

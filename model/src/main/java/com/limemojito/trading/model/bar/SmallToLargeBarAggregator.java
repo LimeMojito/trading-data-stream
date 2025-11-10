@@ -55,9 +55,9 @@ public class SmallToLargeBarAggregator {
             return Collections.emptyList();
         }
         if (smallerBars.size() == 1) {
-            return aggregateOneBar(targetPeriod, smallerBars.get(0));
+            return aggregateOneBar(targetPeriod, smallerBars.getFirst());
         }
-        return aggregateTwoPlusBars(targetPeriod, smallerBars, smallerBars.get(0));
+        return aggregateTwoPlusBars(targetPeriod, smallerBars, smallerBars.getFirst());
     }
 
     private List<Bar> aggregateOneBar(Period targetPeriod, Bar first) {

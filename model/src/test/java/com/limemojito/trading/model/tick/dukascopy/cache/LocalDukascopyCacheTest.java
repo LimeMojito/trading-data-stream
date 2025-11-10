@@ -18,6 +18,7 @@
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
@@ -67,7 +68,7 @@ public class LocalDukascopyCacheTest {
                                                          M10,
                                                          Instant.parse("2019-06-07T04:00:00Z"),
                                                          Instant.parse("2019-06-07T05:00:00Z"));
-    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator();
+    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
     private final List<String> paths = pathGenerator.generatePaths(criteria.getSymbol(),
                                                                    criteria.getDayStart(0),
                                                                    criteria.getDayEnd(0));

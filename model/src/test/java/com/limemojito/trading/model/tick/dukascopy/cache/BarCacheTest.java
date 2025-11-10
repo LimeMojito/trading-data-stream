@@ -18,6 +18,7 @@
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
@@ -42,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class BarCacheTest {
     private final Validator validator = DukascopyUtils.setupValidator();
     private final ObjectMapper mapper = DukascopyUtils.setupObjectMapper();
-    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator();
+    private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
     private final BarCriteria criteria = new BarCriteria("EURUSD",
                                                          M10,
                                                          Instant.parse("2019-06-07T04:00:00Z"),
@@ -58,10 +59,11 @@ public class BarCacheTest {
     public void shouldProduceCacheStatsForDirect() throws Exception {
         final DirectDukascopyBarNoCache directBarNoCache = new DirectDukascopyBarNoCache(validator, tickSearch);
         assertBarsRetrieved(directBarNoCache);
-        assertThat(directBarNoCache.cacheStats()).isEqualTo("DirectBarNoCache: 24 day retrieve(s)");
+        // this has skipped market closed days.
+        assertThat(directBarNoCache.cacheStats()).isEqualTo("DirectBarNoCache: 21 day retrieve(s)");
         assertThat(directBarNoCache.getHitCount()).isEqualTo(0);
         assertThat(directBarNoCache.getMissCount()).isEqualTo(directBarNoCache.getRetrieveCount());
-        assertThat(directBarNoCache.getMissCount()).isEqualTo(24);
+        assertThat(directBarNoCache.getMissCount()).isEqualTo(21);
     }
 
     @Test

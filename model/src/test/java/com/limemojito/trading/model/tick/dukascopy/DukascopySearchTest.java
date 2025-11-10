@@ -119,7 +119,7 @@ public class DukascopySearchTest {
         }
         assertThat(bars).hasSize(expectedBarCount);
         // this has run over a weekend gap
-        assertThat(bars.get(0).getStartInstant()).isEqualTo("2019-01-04T18:00:00Z");
+        assertThat(bars.getFirst().getStartInstant()).isEqualTo("2019-01-04T18:00:00Z");
         assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-01-07T03:00:00Z");
         assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-01-07T03:00:00Z");
     }
@@ -131,10 +131,10 @@ public class DukascopySearchTest {
                                                                         H1,
                                                                         expectedBarCount,
                                                                         Instant.parse("2019-06-17T01:59:59Z"))) {
-            List<Bar> data = stream.stream().collect(Collectors.toList());
+            List<Bar> data = stream.stream().toList();
             data.forEach(bar -> log.info("Found bar @ {}", bar.getStartInstant()));
             assertThat(data.size()).isEqualTo(expectedBarCount);
-            assertThat(data.get(0).getStartInstant()).isEqualTo("2019-06-14T16:00:00Z");
+            assertThat(data.getFirst().getStartInstant()).isEqualTo("2019-06-14T16:00:00Z");
             assertThat(data.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-06-17T01:00:00Z");
         }
     }
@@ -166,7 +166,7 @@ public class DukascopySearchTest {
         }
         assertThat(bars).hasSize(expectedBarCount);
         // this has run over a weekend gap
-        assertThat(bars.get(0).getStartInstant()).isEqualTo("2010-01-01T00:00:00Z");
+        assertThat(bars.getFirst().getStartInstant()).isEqualTo("2010-01-01T00:00:00Z");
         assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2010-01-01T04:00:00Z");
     }
 

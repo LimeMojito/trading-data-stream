@@ -46,7 +46,7 @@ public class SmallToLargeBarAggregatorTest {
         List<Bar> aggregated1H = new SmallToLargeBarAggregator(VALIDATOR).aggregate(H1, m5Bars);
 
         assertThat(aggregated1H).hasSize(1);
-        assertBar(aggregated1H.get(0),
+        assertBar(aggregated1H.getFirst(),
                   "2018-06-05T05:00:00Z",
                   "2018-06-05T05:59:59.999Z",
                   "EURUSD",
@@ -87,7 +87,7 @@ public class SmallToLargeBarAggregatorTest {
         List<Bar> aggregated1H = new SmallToLargeBarAggregator(VALIDATOR).aggregate(H1, m5Bars);
 
         assertThat(aggregated1H).hasSize(1);
-        assertBar(aggregated1H.get(0),
+        assertBar(aggregated1H.getFirst(),
                   "2018-06-05T05:00:00Z",
                   "2018-06-05T05:59:59.999Z",
                   "EURUSD",
@@ -106,7 +106,7 @@ public class SmallToLargeBarAggregatorTest {
         List<Bar> aggregated1H = new SmallToLargeBarAggregator(VALIDATOR).aggregate(H1, m5Bars);
 
         assertThat(aggregated1H).hasSize(2);
-        assertBar(aggregated1H.get(0),
+        assertBar(aggregated1H.getFirst(),
                   "2018-06-05T06:00:00Z",
                   "2018-06-05T06:59:59.999Z",
                   "EURUSD",
@@ -136,7 +136,7 @@ public class SmallToLargeBarAggregatorTest {
 
         assertThat(aggregated1H).hasSize(2);
         // oldest bar first, so we fill the past bar to capacity before the latest one.
-        assertBar(aggregated1H.get(0),
+        assertBar(aggregated1H.getFirst(),
                   "2018-06-05T06:00:00Z",
                   "2018-06-05T06:59:59.999Z",
                   "EURUSD",

@@ -20,6 +20,7 @@ package com.limemojito.trading.model.example;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.TradingSearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
@@ -86,7 +87,7 @@ public class DataStreamCli {
 
     @Bean
     public TradingSearch tradingSearch(Validator validator, DukascopyCache cache) {
-        return new DukascopySearch(validator, cache, new DukascopyPathGenerator());
+        return new DukascopySearch(validator, cache, new DukascopyPathGenerator(new MarketStatus()));
     }
 
     public static void main(String[] args) {

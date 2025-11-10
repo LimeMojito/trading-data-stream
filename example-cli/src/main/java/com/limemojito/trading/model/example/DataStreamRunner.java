@@ -68,6 +68,6 @@ public class DataStreamRunner implements ApplicationRunner {
         if (optionValues.isEmpty()) {
             throw new IllegalArgumentException("No value for command line argument --" + name + " Are you missing = ?");
         }
-        return optionValues.get(0);
+        return optionValues.getFirst();
     }
 }
