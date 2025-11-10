@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -52,21 +52,47 @@ public abstract class TradingCsvStream<Model> implements AutoCloseable {
     private final TradingInputStream<Model> inputStream;
     private final CSVPrinter printer;
 
+    /**
+     * Construct a CSV converter writing to a binary {@link OutputStream} using UTF-8 encoding.
+     *
+     * @param inputStream  source of models to read
+     * @param outputStream destination to write CSV bytes to
+     * @throws IOException if the printer cannot be created
+     */
     public TradingCsvStream(TradingInputStream<Model> inputStream, OutputStream outputStream) throws IOException {
         this(inputStream, new OutputStreamWriter(outputStream, UTF_8));
     }
 
+    /**
+     * Construct a CSV converter writing to a character {@link Writer}.
+     *
+     * @param inputStream source of models to read
+     * @param output      destination to write CSV text to
+     * @throws IOException if the printer cannot be created
+     */
     public TradingCsvStream(TradingInputStream<Model> inputStream, Writer output) throws IOException {
         this.inputStream = inputStream;
         this.printer = new CSVPrinter(output, CSVFormat.EXCEL);
     }
 
+    /**
+     * Close both the underlying input stream and the CSV printer.
+     *
+     * @throws IOException if closing either resource fails
+     */
     @Override
     public void close() throws IOException {
         inputStream.close();
         printer.close();
     }
 
+    /**
+     * Stream all models from the input and write them as CSV records.
+     * The header is emitted first using {@link #getHeader()} and each model is converted
+     * via {@link #modelToFields(Object)} with light formatting applied for date/time values.
+     *
+     * @throws IOException if writing fails
+     */
     public void convert() throws IOException {
         log.info("Begin convert to CSV");
         printer.printRecord(getHeader());

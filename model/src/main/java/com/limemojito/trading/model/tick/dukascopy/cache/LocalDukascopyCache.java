@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.validation.Validator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -53,6 +53,7 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
      * Property for overriding local cache location.  Defaults to "user.home"/.dukascopy/.
      */
     public static final String PROP_DIR = DirectDukascopyNoCache.class.getPackageName() + ".localCacheDir";
+    private static final int TO_KB = 1_024;
 
     private final ObjectMapper mapper;
     private final Path cacheDirectory;
@@ -71,6 +72,12 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
         this.cacheDirectory = directory;
     }
 
+    /**
+     * Compute the total size, in bytes, of files currently stored in the local cache directory.
+     *
+     * @return total cache size in bytes
+     * @throws IOException if walking the cache directory fails
+     */
     public long getCacheSizeBytes() throws IOException {
         try (Stream<Path> walk = Files.walk(cacheDirectory)) {
             final Optional<Long> size = walk.map(Path::toFile)
@@ -129,8 +136,11 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
             Path cachePath = Path.of(cacheDirectory.toString(), path);
             //noinspection ResultOfMethodCallIgnored
             cachePath.toFile().getParentFile().mkdirs();
+            log.debug("Saving {} to local cache {}", path, cachePath);
             Files.copy(input, cachePath);
-            log.debug("Saved {} in local cache {}", path, cachePath);
+            log.debug("Saved {} in local cache {} {}KB", path, cachePath, Files.size(cachePath) / TO_KB);
+        } else {
+            log.warn("Skipped saving {} to local cache as it already exists", path);
         }
     }
 

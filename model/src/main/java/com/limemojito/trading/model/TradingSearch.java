@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -26,8 +26,9 @@ import java.io.IOException;
 import java.time.Instant;
 
 /**
- * Interface to different search engines.
- * Note all bar streams are from oldest to youngest, ie (2010 -7lt; 2018)
+ * Abstraction over search providers that fetch ticks and aggregate them into bars.
+ * <p>
+ * All bar streams are returned in chronological order (oldest to newest), e.g. 2010 &lt; 2018.
  */
 public interface TradingSearch {
 

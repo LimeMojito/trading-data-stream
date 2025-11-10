@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 
-import jakarta.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,17 +41,27 @@ import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.fromJso
 import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonStream;
 
 /**
- * s3, then another cache.
- * Marked as a Service for Spring usage.  Note that properties of support classes can be set as spring properties.
+ * A {@link com.limemojito.trading.model.tick.dukascopy.DukascopyCache} implementation that stores and
+ * retrieves data from Amazon S3, optionally delegating to a fallback cache when objects are missing.
+ * The service can cache both raw Dukascopy binary files and pre-aggregated bar JSON files.
  */
 @Service
 @Slf4j
 public class S3DukascopyCache extends FallbackDukascopyCache {
 
+    private static final int TO_KB = 1_024;
     private final AmazonS3 s3;
     private final String bucketName;
     private final ObjectMapper mapper;
 
+    /**
+     * Create an S3-backed Dukascopy cache with a fallback cache.
+     *
+     * @param s3         Amazon S3 client used to store and retrieve objects
+     * @param bucketName target S3 bucket
+     * @param mapper     Jackson mapper for JSON bar payloads
+     * @param fallback   cache to consult when an object is not present in S3
+     */
     public S3DukascopyCache(AmazonS3 s3, String bucketName, ObjectMapper mapper, DukascopyCache fallback) {
         super(fallback);
         this.s3 = s3;
@@ -59,6 +69,13 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
         this.mapper = mapper;
     }
 
+    /**
+     * Creates a bar cache that first checks and stores data in S3 and delegates to the fallback cache on miss.
+     *
+     * @param validator  bean validator for bar data
+     * @param tickSearch provider capable of locating Dukascopy bar files
+     * @return a composed bar cache backed by S3
+     */
     @Override
     public BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch) {
         return new S3BarCache(getFallback().createBarCache(validator, tickSearch));
@@ -102,7 +119,7 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
             metadata.setContentType(contentType);
             metadata.setContentDisposition(path);
             try (ByteArrayInputStream s3Input = new ByteArrayInputStream(bytes)) {
-                log.info("Saving to s3://{}/{}", bucketName, path);
+                log.info("Saving to s3://{}/{} size {} KB", bucketName, path, bytes.length / TO_KB);
                 s3.putObject(new PutObjectRequest(bucketName, path, s3Input, metadata));
             }
         }

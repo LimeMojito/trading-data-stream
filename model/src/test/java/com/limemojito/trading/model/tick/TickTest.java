@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@
 package com.limemojito.trading.model.tick;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.JsonLoader;
+import com.limemojito.json.ObjectMapperPrototype;
 import com.limemojito.test.JsonAsserter;
-import com.limemojito.test.JsonLoader;
-import com.limemojito.test.ObjectMapperPrototype;
 import com.limemojito.trading.model.UtcTimeUtils;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +39,7 @@ public class TickTest {
     private static final String EURUSD = "EURUSD";
 
     @Test
-    public void tickShouldBeJsonable() throws Exception {
+    public void tickShouldBeJsonable() {
         final Tick tick = createTick(EURUSD, 1528174843000L, 116928, Historical);
         assertThat(tick.getDateTimeUtc()).isEqualTo(UtcTimeUtils.toLocalDateTimeUtc(tick.getMillisecondsUtc()));
         assertThat(tick.getInstant()).isEqualTo(UtcTimeUtils.toInstant(tick.getMillisecondsUtc()));
@@ -47,7 +47,7 @@ public class TickTest {
     }
 
     @Test
-    public void shouldBeStableJson() throws Exception {
+    public void shouldBeStableJson() {
         ObjectMapper objectMapper = ObjectMapperPrototype.buildBootLikeMapper();
         JsonLoader loader = new JsonLoader(objectMapper);
 

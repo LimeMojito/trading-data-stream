@@ -1,0 +1,13 @@
+name: Maven Versions Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "25 17 * * 3"
+    # at 5:25PM GMT or 3:25AM (+1) AEST every Wednesday
+
+
+jobs:
+  version-update:
+    uses: LimeMojito/oss-maven-standards/.github/workflows/oss-maven-patch-version.yml@master
+    secrets: inherit

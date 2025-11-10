@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -35,6 +35,14 @@ import java.util.NoSuchElementException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * Utilities for streaming JSON serialization and deserialization of model objects using Jackson.
+ * <p>
+ * Provides helpers to write a {@link com.limemojito.trading.model.TradingInputStream} or a {@link java.util.Collection}
+ * as a JSON array without loading all data in memory, and to create an input stream that lazily reads
+ * a JSON array from an {@link java.io.InputStream} one object at a time.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class TradingInputJsonStreams {

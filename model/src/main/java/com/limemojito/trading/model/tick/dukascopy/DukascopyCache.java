@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,25 +19,25 @@ package com.limemojito.trading.model.tick.dukascopy;
 
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
-
 import jakarta.validation.Validator;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
 public interface DukascopyCache {
 
-        InputStream stream(String dukascopyPath) throws IOException;
+    InputStream stream(String dukascopyPath) throws IOException;
 
-        int getHitCount();
+    int getHitCount();
 
-        int getMissCount();
+    int getMissCount();
 
-        int getRetrieveCount();
+    int getRetrieveCount();
 
-        String cacheStats();
+    String cacheStats();
 
-        BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch);
+    BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch);
 
     interface BarCache {
         List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException;

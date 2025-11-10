@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -34,12 +34,34 @@ import java.util.function.Predicate;
 
 import static com.limemojito.trading.model.bar.Bar.Period.D1;
 
+/**
+ * Searches Dukascopy tick data and returns aggregated bars over a date range.
+ * <p>
+ * This class orchestrates path generation, cache retrieval, and trimming to the requested time window,
+ * returning a combined {@link com.limemojito.trading.model.TradingInputStream} of {@link Bar} objects.
+ * </p>
+ */
 @RequiredArgsConstructor
 @Slf4j
 public class DukascopyBarSearch extends BaseDukascopySearch {
     private final BarCache cache;
     private final DukascopyPathGenerator pathGenerator;
 
+    /**
+     * Aggregate Dukascopy ticks into {@link Bar} data over the given time range.
+     * <p>
+     * The underlying cache is consulted per-day; results are trimmed to the exact
+     * {@code [startTime, endTime]} window and combined into a single streaming iterator.
+     * </p>
+     *
+     * @param symbol      instrument symbol (e.g. EURUSD)
+     * @param period      bar aggregation period
+     * @param startTime   inclusive start instant (UTC)
+     * @param endTime     inclusive end instant (UTC)
+     * @param barVisitor  optional callback invoked for each produced bar
+     * @return a stream of bars across the requested range
+     * @throws IOException if the underlying data cannot be read
+     */
     public TradingInputStream<Bar> searchForDaysIn(String symbol,
                                                    Bar.Period period,
                                                    Instant startTime,
@@ -53,7 +75,7 @@ public class DukascopyBarSearch extends BaseDukascopySearch {
                   criteria.getEnd());
         final Predicate<Bar> trimFilter = bar ->
                 bar.getStartInstant().compareTo(criteria.getStart()) >= 0
-                        && bar.getStartInstant().compareTo(criteria.getEnd()) <= 0;
+                && bar.getStartInstant().compareTo(criteria.getEnd()) <= 0;
         final BarVisitor barVisitAfterTrim = bar -> {
             if (trimFilter.test(bar)) {
                 barVisitor.visit(bar);

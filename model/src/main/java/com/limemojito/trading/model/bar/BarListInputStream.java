@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,20 +32,37 @@ import java.util.NoSuchElementException;
 public class BarListInputStream implements TradingInputStream<Bar> {
     private final TradingInputStream<Bar> delegate;
 
+    /**
+     * Create an input stream over a fixed list of bars, optionally visiting each bar as it is emitted.
+     *
+     * @param barList    bars to stream in their current order
+     * @param barVisitor optional visitor invoked for each bar when read
+     */
     public BarListInputStream(List<Bar> barList, BarVisitor barVisitor) {
         this.delegate = TradingInputStreamMapper.streamFrom(barList, barVisitor);
     }
 
+    /**
+     * Return the next bar from the underlying list.
+     *
+     * @throws NoSuchElementException if no more bars are available
+     */
     @Override
     public Bar next() throws NoSuchElementException {
         return delegate.next();
     }
 
+    /**
+     * Whether another bar is available.
+     */
     @Override
     public boolean hasNext() {
         return delegate.hasNext();
     }
 
+    /**
+     * Close the underlying resources, if any.
+     */
     @Override
     public void close() throws IOException {
         delegate.close();

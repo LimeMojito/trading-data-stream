@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,6 +17,15 @@
 
 package com.limemojito.trading.model;
 
+/**
+ * Declares the semantic version of the trading data stream model.
+ * <p>
+ * Use this version string in serialized payloads and clients to ensure compatibility between
+ * producers and consumers of the model types found in this package.
+ */
 public interface ModelVersion {
+    /**
+     * Current version of the model contract exposed by classes in {@code com.limemojito.trading.model}.
+     */
     String VERSION = "1.0";
 }

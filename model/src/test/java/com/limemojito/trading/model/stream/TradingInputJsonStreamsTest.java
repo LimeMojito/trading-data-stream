@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ package com.limemojito.trading.model.stream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.ObjectMapperPrototype;
 import com.limemojito.test.JsonAsserter;
-import com.limemojito.test.ObjectMapperPrototype;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.bar.Bar;

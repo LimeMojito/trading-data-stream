@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -27,6 +27,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Base decorator that adds a simple read-through caching layer in front of another {@link DukascopyCache}.
+ * <p>
+ * Subclasses implement storage-specific {@code checkCache} and {@code saveToCache}. When a path is requested,
+ * this class first checks the local cache; on miss it delegates to the fallback, stores the result, and returns it.
+ * Hit/miss statistics are tracked for observability via {@link #cacheStats()}.
+ * </p>
+ */
 public abstract class FallbackDukascopyCache implements DukascopyCache {
 
     @Getter(AccessLevel.PROTECTED)

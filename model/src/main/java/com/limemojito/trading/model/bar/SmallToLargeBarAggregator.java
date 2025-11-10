@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ package com.limemojito.trading.model.bar;
 
 import com.limemojito.trading.model.StreamData;
 import com.limemojito.trading.model.bar.Bar.Period;
-import lombok.RequiredArgsConstructor;
-
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +32,24 @@ import java.util.Set;
 import static com.limemojito.trading.model.StreamData.REALTIME_UUID;
 import static java.lang.String.format;
 
+/**
+ * Aggregates bars from a smaller period (e.g., M5) into a larger period (e.g., H1) in descending time order.
+ * The input list must be sorted in descending time (most recent first) and all bars must share the same
+ * symbol and period. The output bars preserve descending order and compute OHLC by folding constituent bars.
+ */
 @RequiredArgsConstructor
 public class SmallToLargeBarAggregator {
     private final Validator validator;
 
+    /**
+     * Produce a list of bars by aggregating the supplied bars onto the target period.  The input list must be sorted in
+     * descending time (most recent first) and all bars must share the same
+     * symbol and period. The output bars preserve descending order and compute OHLC by folding constituent bars.
+     *
+     * @param targetPeriod larger than the supplied bars
+     * @param smallerBars  Data to add to a larger period sorted in descending time.
+     * @return The new list of bars.
+     */
     public List<Bar> aggregate(Period targetPeriod, List<Bar> smallerBars) {
         if (smallerBars.isEmpty()) {
             return Collections.emptyList();
@@ -57,7 +71,7 @@ public class SmallToLargeBarAggregator {
                                  first.getLow(),
                                  first.getClose(),
                                  first.getSource()
-        ));
+                                ));
     }
 
     @SuppressWarnings("JavaNCSS")

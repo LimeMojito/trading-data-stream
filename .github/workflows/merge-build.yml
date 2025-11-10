@@ -5,8 +5,15 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    types:
+      - ready_for_review
+      - assigned
 
 jobs:
   oss-maven-workflow:
     uses: LimeMojito/oss-maven-standards/.github/workflows/oss-java-build.yml@master
     secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+      id-token: write

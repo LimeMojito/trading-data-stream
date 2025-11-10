@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -23,6 +23,13 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * Base functionality shared by Dukascopy search implementations.
+ * <p>
+ * Provides a common beginning-of-time guard and criteria validation helper used
+ * by both tick and bar search classes.
+ * </p>
+ */
 public class BaseDukascopySearch {
     /**
      * Defaulting the beginning of Dukascopy searches to be 2010.  This puts a limit on recursive searching.

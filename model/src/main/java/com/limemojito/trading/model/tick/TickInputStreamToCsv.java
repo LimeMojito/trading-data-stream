@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 
 package com.limemojito.trading.model.tick;
 
-import com.limemojito.trading.model.stream.TradingCsvStream;
 import com.limemojito.trading.model.TradingInputStream;
+import com.limemojito.trading.model.stream.TradingCsvStream;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -35,11 +35,25 @@ import java.util.List;
  */
 @Slf4j
 public class TickInputStreamToCsv extends TradingCsvStream<Tick> {
+    /**
+     * Create a CSV writer over a tick input stream, writing to an {@link OutputStream}.
+     *
+     * @param tickInputStream source of ticks to read
+     * @param outputStream    destination to write CSV bytes to
+     * @throws IOException if the underlying stream cannot be written
+     */
     public TickInputStreamToCsv(TradingInputStream<Tick> tickInputStream,
                                 OutputStream outputStream) throws IOException {
         super(tickInputStream, outputStream);
     }
 
+    /**
+     * Create a CSV writer over a tick input stream, writing to a character {@link Writer}.
+     *
+     * @param tickInputStream source of ticks to read
+     * @param writer          destination to write CSV text to
+     * @throws IOException if the underlying writer cannot be written
+     */
     public TickInputStreamToCsv(TradingInputStream<Tick> tickInputStream, Writer writer) throws IOException {
         super(tickInputStream, writer);
     }

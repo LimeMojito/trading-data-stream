@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -41,13 +41,30 @@ import static java.time.temporal.TemporalAdjusters.lastDayOfYear;
 import static java.util.stream.Collectors.groupingBy;
 
 /**
- * Paths follow the shape EURUSD/2017/00/03/19h_ticks.bi5
+ * Generates canonical Dukascopy data file paths for a symbol over a given UTC time range.
+ * <p>
+ * Provides helpers to produce flat hourly paths or groups of hourly paths per day. The output is
+ * suitable for consumption by caches and search components.
+ * </p>
+ * Paths follow the shape <code>EURUSD/2017/00/03/19h_ticks.bi5</code>
  */
 @Component
 @Slf4j
 public class DukascopyPathGenerator {
     private final NumberFormat format00 = new DecimalFormat("00");
 
+    /**
+     * Generate Dukascopy hourly file paths grouped by day for the given symbol and time range.
+     * <p>
+     * Each inner list contains the 24 hourly paths (or a subset on boundary days) for a single day,
+     * and the outer list is ordered by day.
+     * </p>
+     *
+     * @param symbol           instrument symbol (e.g. EURUSD)
+     * @param startInstantUtc  inclusive start instant (UTC)
+     * @param endInstantUtc    inclusive end instant (UTC)
+     * @return ordered groups of hourly paths, one list per day
+     */
     public List<List<String>> generatePathsGroupedByDay(String symbol, Instant startInstantUtc, Instant endInstantUtc) {
         final List<String> paths = generatePaths(symbol, startInstantUtc, endInstantUtc);
         final int dayPathLength = 17;
@@ -62,6 +79,15 @@ public class DukascopyPathGenerator {
         return grouped;
     }
 
+    /**
+     * Generate the ordered list of Dukascopy hourly file paths for the given symbol and time range.
+     *
+     * @param symbol           instrument symbol (e.g. EURUSD)
+     * @param startInstantUtc  inclusive start instant (UTC)
+     * @param endInstantUtc    inclusive end instant (UTC)
+     * @return ordered list of hourly file paths spanning the requested window
+     * @throws IllegalArgumentException if {@code endInstantUtc} is not strictly after {@code startInstantUtc}
+     */
     public List<String> generatePaths(String symbol, Instant startInstantUtc, Instant endInstantUtc) {
         final Criteria criteria = new Criteria(startInstantUtc, endInstantUtc, symbol);
         final LocalDateTime start = criteria.getStartUtc();

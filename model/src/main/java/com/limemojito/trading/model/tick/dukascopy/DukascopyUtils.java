@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ import com.limemojito.trading.model.tick.TickInputStreamToCsv;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.LocalDukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
-import lombok.extern.slf4j.Slf4j;
-
 import jakarta.validation.Configuration;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@ package com.limemojito.trading.model.tick.dukascopy;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.TickVisitor;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Validator;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +43,13 @@ import static java.lang.String.format;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.time.ZoneOffset.UTC;
 
+/**
+ * Streaming reader over Dukascopy compressed tick files.
+ * <p>
+ * Lazily opens the underlying LZMA-compressed input when first needed, decodes fixed-size
+ * binary tick rows, validates them, and optionally forwards each tick to a visitor.
+ * </p>
+ */
 @Slf4j
 public class DukascopyTickInputStream implements TradingInputStream<Tick> {
     private static final int TICK_ROW_SIZE = 20;
@@ -100,23 +107,14 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         this(validator, path, inputStream, null, visitor);
     }
 
-    private DukascopyTickInputStream(Validator validator,
-                                     String path,
-                                     InputStream directSuppliedInputStream,
-                                     DukascopyCache cache,
-                                     TickVisitor visitor) {
-        this.validator = validator;
-        this.path = path;
-        this.visitor = visitor;
-        final int symbolEndIndex = path.indexOf("/2");
-        final String datePath = path.substring(symbolEndIndex);
-        this.symbol = parseSymbol(path, symbolEndIndex);
-        this.epochGmt = parseGmtStart(datePath);
-        this.buffer = ByteBuffer.allocate(TICK_ROW_SIZE).order(BIG_ENDIAN);
-        this.directSuppliedInputStream = directSuppliedInputStream;
-        this.cache = cache;
-    }
-
+    /**
+     * Whether another tick can be read from the underlying Dukascopy stream.
+     * <p>
+     * Lazily opens the compressed input on first invocation and prefetches one tick to determine availability.
+     * </p>
+     *
+     * @return {@code true} if a subsequent call to {@link #next()} will succeed
+     */
     @Override
     @SneakyThrows
     public boolean hasNext() {
@@ -134,6 +132,12 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         return hasNext();
     }
 
+    /**
+     * Returns the next decoded tick from the stream.
+     *
+     * @return next {@link Tick}
+     * @throws java.util.NoSuchElementException if the end of the stream has been reached
+     */
     @Override
     @SneakyThrows
     public Tick next() {
@@ -142,6 +146,35 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
             throw new NoSuchElementException("No more ticks from " + path);
         }
         return tick;
+    }
+
+    /**
+     * Closes the underlying compressed stream if it has been opened.
+     *
+     * @throws IOException if an I/O error occurs while closing
+     */
+    public void close() throws IOException {
+        if (delegate != null) {
+            delegate.close();
+        }
+    }
+
+
+    private DukascopyTickInputStream(Validator validator,
+                                     String path,
+                                     InputStream directSuppliedInputStream,
+                                     DukascopyCache cache,
+                                     TickVisitor visitor) {
+        this.validator = validator;
+        this.path = path;
+        this.visitor = visitor;
+        final int symbolEndIndex = path.indexOf("/2");
+        final String datePath = path.substring(symbolEndIndex);
+        this.symbol = parseSymbol(path, symbolEndIndex);
+        this.epochGmt = parseGmtStart(datePath);
+        this.buffer = ByteBuffer.allocate(TICK_ROW_SIZE).order(BIG_ENDIAN);
+        this.directSuppliedInputStream = directSuppliedInputStream;
+        this.cache = cache;
     }
 
     private Tick readTick() throws IOException {
@@ -167,15 +200,10 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         return tick;
     }
 
-    public void close() throws IOException {
-        if (delegate != null) {
-            delegate.close();
-        }
-    }
-
     private void lazyLoad() throws IOException {
         if (!readAttempted) {
-            final InputStream inputStream = (directSuppliedInputStream != null) ? directSuppliedInputStream : cache.stream(
+            final InputStream inputStream = (directSuppliedInputStream
+                                             != null) ? directSuppliedInputStream : cache.stream(
                     path);
             try {
                 delegate = new LZMACompressorInputStream(inputStream);

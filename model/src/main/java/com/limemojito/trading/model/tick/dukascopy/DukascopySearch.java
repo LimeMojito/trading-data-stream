@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -24,14 +24,21 @@ import com.limemojito.trading.model.bar.BarInputStreamToCsv;
 import com.limemojito.trading.model.bar.BarVisitor;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.TickVisitor;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import jakarta.validation.Validator;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.time.Instant;
 
+/**
+ * High-level search service that retrieves Dukascopy ticks and aggregates them into bars.
+ * <p>
+ * This service wires together path generation, caching, and the tick/bar search pipelines to provide
+ * a simple API: stream raw {@link Tick} data or aggregate into {@link Bar}s over a requested time range.
+ * </p>
+ */
 @Service
 @Slf4j
 public class DukascopySearch extends BaseDukascopySearch implements TradingSearch {

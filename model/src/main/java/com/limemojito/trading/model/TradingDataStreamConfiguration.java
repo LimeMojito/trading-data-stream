@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Lime Mojito Pty Ltd
+ * Copyright 2011-2025 Lime Mojito Pty Ltd
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -26,12 +26,11 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopySearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.LocalDukascopyCache;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-
-import jakarta.validation.Validator;
 
 /**
  * An example Spring configuration with a local file cache.  You can replace the local cache chain with an S3-&gt;local-&gt;no-cache as well.
@@ -40,21 +39,49 @@ import jakarta.validation.Validator;
  */
 @Configuration
 public class TradingDataStreamConfiguration {
+    /**
+     * Generator for Dukascopy file paths used by search and caching components.
+     *
+     * @return a new {@link DukascopyPathGenerator}
+     */
     @Bean
     public DukascopyPathGenerator pathGenerator() {
         return new DukascopyPathGenerator();
     }
 
+    /**
+     * Local cache chain that first checks the filesystem and falls back to direct (no-cache) retrieval.
+     *
+     * @param mapper Jackson object mapper for metadata persistence
+     * @return a {@link DukascopyCache} that reads/writes to local disk and falls back to network on misses
+     */
     @Bean
     public DukascopyCache localCacheChain(ObjectMapper mapper) {
         return new LocalDukascopyCache(mapper, new DirectDukascopyNoCache());
     }
 
+    /**
+     * Search implementation backed by Dukascopy data and the configured cache chain.
+     *
+     * @param pathGenerator generator for data paths
+     * @param cache         cache implementation to read/write data
+     * @param validator     bean validation instance used by aggregators
+     * @return a {@link TradingSearch} implementation
+     */
     @Bean
     public TradingSearch tickSearch(DukascopyPathGenerator pathGenerator, DukascopyCache cache, Validator validator) {
         return new DukascopySearch(validator, cache, pathGenerator);
     }
 
+    /**
+     * Aggregates ticks into bars and notifies a callback as each bar completes.
+     * Prototype scope so each request gets a fresh aggregator instance.
+     *
+     * @param validator         bean validation instance
+     * @param notifier          callback notified when bars complete
+     * @param aggregationPeriod target bar period for aggregation
+     * @return a {@link TickBarNotifyingAggregator}
+     */
     @Scope("prototype")
     @Bean
     public TickBarNotifyingAggregator tickBarAggregator(Validator validator,
