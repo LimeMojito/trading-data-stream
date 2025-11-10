@@ -53,7 +53,7 @@ public class DukascopyPathGeneratorTest {
         List<String> paths = generatePathsFor("2018-01-01T00:00:00Z", "2018-12-31T23:59:59Z");
 
         // this path count is due to filtering of closed market hours.
-        int expectedPathCount = 7928;
+        int expectedPathCount = 6203;
         assertThat(paths).hasSize(expectedPathCount);
         assertThat(paths.getFirst()).isEqualTo("EURUSD/2018/00/01/00h_ticks.bi5");
         assertThat(paths.get(expectedPathCount - 1)).isEqualTo("EURUSD/2018/11/31/23h_ticks.bi5");
@@ -64,7 +64,7 @@ public class DukascopyPathGeneratorTest {
         List<String> paths = generatePathsFor("2018-01-01T00:00:00Z", "2021-12-31T23:59:59Z");
 
         // also excludes closed hours.
-        int numHoursIncludingLeapYear = 31734;
+        int numHoursIncludingLeapYear = 24837;
         assertThat(paths).hasSize(numHoursIncludingLeapYear);
         assertThat(paths.getFirst()).isEqualTo("EURUSD/2018/00/01/00h_ticks.bi5");
         assertThat(paths.get(numHoursIncludingLeapYear - 1)).isEqualTo("EURUSD/2021/11/31/21h_ticks.bi5");
@@ -76,12 +76,12 @@ public class DukascopyPathGeneratorTest {
         List<List<String>> pathByDay = generator.generatePathsGroupedByDay("USDJPY",
                                                                            Instant.parse("2018-01-01T00:00:00Z"),
                                                                            Instant.parse("2018-12-31T23:59:59Z"));
-        assertThat(pathByDay).hasSize(365);
+        assertThat(pathByDay).hasSize(313);
         for (List<String> paths : pathByDay) {
-            assertThat(paths).hasSizeGreaterThan(1);
+            assertThat(paths).hasSizeGreaterThanOrEqualTo(1);
         }
         assertThat(pathByDay.getFirst().getFirst()).isEqualTo("USDJPY/2018/00/01/00h_ticks.bi5");
-        assertThat(pathByDay.get(364).get(23)).isEqualTo("USDJPY/2018/11/31/23h_ticks.bi5");
+        assertThat(pathByDay.getLast().getLast()).isEqualTo("USDJPY/2018/11/31/23h_ticks.bi5");
 
     }
 

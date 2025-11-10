@@ -26,6 +26,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 
 import static java.time.DayOfWeek.MONDAY;
+import static java.time.DayOfWeek.SATURDAY;
+import static java.time.DayOfWeek.SUNDAY;
 
 /**
  * Functions for checking if the market is open or closed.
@@ -60,7 +62,7 @@ public class MarketStatus {
         Status status = isAfterSydneyWeekStart(instant) && isBeforeNewYorkWeekEndFor(instant)
                 ? Status.OPEN
                 : Status.CLOSED;
-        log.debug("Market status is {} for {}", status, instant);
+        log.trace("Market status is {} for {}", status, instant);
         return status;
     }
 
@@ -68,6 +70,11 @@ public class MarketStatus {
         ZonedDateTime newYorkTime = instant.atZone(newYorkZone);
         log.trace("Query {} is {} {} at NewYork", instant, newYorkTime.getDayOfWeek(), newYorkTime);
         final int newYorkCloseHour = 17;
+        // Sunday may be a trading day as Sydney Monday 9am overlaps.
+        if (newYorkTime.getDayOfWeek() == SATURDAY) {
+            log.trace("Saturday in NY is never a trading day");
+            return false;
+        }
         if (newYorkTime.getDayOfWeek() == DayOfWeek.FRIDAY) {
             boolean beforeClose = newYorkTime.getHour() < newYorkCloseHour;
             log.trace("Friday before close at {}? {}", newYorkCloseHour, beforeClose);
@@ -83,10 +90,15 @@ public class MarketStatus {
     private boolean isAfterSydneyWeekStart(Instant instant) {
         ZonedDateTime atSydney = instant.atZone(sydneyZone);
         log.trace("Query {} is {} {} at Sydney", instant, atSydney.getDayOfWeek(), atSydney);
+        // Saturday may be a trading day as NY Friday 4pm overlaps.
+        if (atSydney.getDayOfWeek() == SUNDAY) {
+            log.trace("Sunday in Sydney is never a trading day");
+            return false;
+        }
         final int sydneyOpenHour = 9;
         if (atSydney.getDayOfWeek() == MONDAY) {
             boolean afterOpen = atSydney.getHour() >= sydneyOpenHour;
-            log.debug("Monday after open at {}AM? {}", sydneyOpenHour, afterOpen);
+            log.trace("Monday after open at {}AM? {}", sydneyOpenHour, afterOpen);
             return afterOpen;
         }
         Instant sydneySessionStart = atSydney.with(TemporalAdjusters.previous(MONDAY))

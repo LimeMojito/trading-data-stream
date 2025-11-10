@@ -21,7 +21,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,7 +39,6 @@ import static java.lang.System.getProperty;
  * This is no caching and a direct call to dukascopy.  Rate limited to work with dukascopy servers.
  */
 @Slf4j
-@RequiredArgsConstructor
 @SuppressWarnings("UnstableApiUsage")
 public class DirectDukascopyNoCache implements DukascopyCache {
     /**
@@ -81,8 +79,19 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     private static final RateLimiter RATE_LIMITER = create(PERMITS_PER_SECOND);
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
     private static final int IO_BUFFER_SIZE = 32 * 1024;
-    private final AtomicInteger retryCounter = new AtomicInteger();
-    private final AtomicInteger retrievePathCounter = new AtomicInteger();
+
+    private final AtomicInteger retryCounter;
+    private final AtomicInteger retrievePathCounter;
+
+    public DirectDukascopyNoCache() {
+        retryCounter = new AtomicInteger();
+        retrievePathCounter = new AtomicInteger();
+        log.info("DirectDukascopyNoCache permits/s: {} retrySeconds: {} retryCount: {} url: {}",
+                 PERMITS_PER_SECOND,
+                 PAUSE_SECONDS,
+                 RETRY_COUNT,
+                 DUKASCOPY_URL);
+    }
 
     /**
      * Open a buffered stream to the Dukascopy resource identified by the path, honoring the rate limiter
@@ -97,7 +106,6 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
         // play nice with Dukascopy's free data.  And if you don't they stop sending data.
         BufferedInputStream stream = fetchWithRetry(url, 1);
-        log.debug("Stream Retrieved from {}", url);
         retrievePathCounter.incrementAndGet();
         return stream;
     }
@@ -188,7 +196,8 @@ public class DirectDukascopyNoCache implements DukascopyCache {
             // keep the rate limit here as extra insurance during retries
             log.debug("Rate limit: {}/s attempt acquire", RATE_LIMITER.getRate());
             final double waited = RATE_LIMITER.acquire();
-            log.info("Loading from {}, waited {}s", url, waited);
+            log.debug("Rate limit: waited {}s", waited);
+            log.info("Loading from {}", url);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
         } catch (IOException e) {
             if (e.getMessage() != null && e.getMessage().contains("500") && callCount <= RETRY_COUNT) {

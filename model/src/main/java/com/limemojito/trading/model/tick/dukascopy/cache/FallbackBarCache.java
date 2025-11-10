@@ -22,6 +22,7 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,6 +41,9 @@ public abstract class FallbackBarCache implements DukascopyCache.BarCache {
 
     @Override
     public List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException {
+        if (dayOfPaths.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<Bar> bars = checkCache(criteria, dayOfPaths.getFirst());
         if (bars == null) {
             cacheMiss.incrementAndGet();

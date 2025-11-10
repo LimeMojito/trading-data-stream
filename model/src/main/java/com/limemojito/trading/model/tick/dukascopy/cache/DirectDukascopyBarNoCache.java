@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -42,6 +43,9 @@ public class DirectDukascopyBarNoCache implements DukascopyCache.BarCache {
     private final AtomicInteger retrieveCount = new AtomicInteger();
 
     public List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException {
+        if (dayOfPaths.isEmpty()) {
+            return Collections.emptyList();
+        }
         final int supportedSize = 24;
         if (dayOfPaths.size() > supportedSize) {
             throw new IllegalArgumentException("Paths for Day of 1H Tick files is not 24! " + dayOfPaths.size());

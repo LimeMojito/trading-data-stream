@@ -65,6 +65,21 @@ public class MarketStatusTest {
         assertState("2019-11-08T17:00:00-05:00", CLOSED);
     }
 
+    @Test
+    public void shouldBeClosedForTestPullingZeroSize() {
+        assertState("2019-07-07T12:00:00Z", CLOSED);
+    }
+
+    @Test
+    public void shouldBeClosedForSaturdayInSydneyBy4pminNY() {
+        assertState("2019-07-06T07:00:00+10:00", CLOSED);
+    }
+
+    @Test
+    public void shouldBeClosedForJustBeforeOpenSydneyByNY() {
+        assertState("2019-07-07T17:59:59-05:00", CLOSED);
+    }
+
     private void assertState(String time, MarketStatus.Status expectedState) {
         assertThat(marketStatus.isOpen(OffsetDateTime.parse(time).toInstant()))
                 .isEqualTo(expectedState);

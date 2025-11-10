@@ -94,10 +94,11 @@ public class DukascopyPathGenerator {
      * @param symbol          instrument symbol (e.g. EURUSD)
      * @param startInstantUtc inclusive start instant (UTC)
      * @param endInstantUtc   inclusive end instant (UTC)
-     * @return ordered list of hourly file paths spanning the requested window
+     * @return ordered list of hourly file paths spanning the requested window.  List may be empty.
      * @throws IllegalArgumentException if {@code endInstantUtc} is not strictly after {@code startInstantUtc}
      */
     public List<String> generatePaths(String symbol, Instant startInstantUtc, Instant endInstantUtc) {
+        log.trace("Generating paths for {} from {} to {}", symbol, startInstantUtc, endInstantUtc);
         final Criteria criteria = new Criteria(startInstantUtc, endInstantUtc, symbol);
         final LocalDateTime start = criteria.getStartUtc();
         final LocalDateTime end = criteria.getEndUtc();
@@ -115,7 +116,11 @@ public class DukascopyPathGenerator {
             }
             computePartialYear(paths, criteria, end.with(firstDayOfYear()), end);
         }
-        log.debug("Generated {} paths", paths.size());
+        log.debug("Generated {} paths for {} from {} to {}",
+                  paths.size(),
+                  criteria.getSymbol(),
+                  criteria.getStartUtc(),
+                  criteria.getEndUtc());
         return paths;
     }
 
@@ -163,7 +168,7 @@ public class DukascopyPathGenerator {
             if (marketStatus.isOpen(utcTime) == OPEN) {
                 paths.add(dukascopyPath(criteria.getSymbol(), year, monthValue, dayOfMonth, h));
             } else {
-                log.info("Skipping {}/{}/{} {}h market is closed.", year, monthValue, dayOfMonth, h);
+                log.trace("Skipping {}/{}/{} {}h market is closed.", year, monthValue, dayOfMonth, h);
             }
         }
     }
