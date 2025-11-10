@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     types:
       - ready_for_review
       - assigned
