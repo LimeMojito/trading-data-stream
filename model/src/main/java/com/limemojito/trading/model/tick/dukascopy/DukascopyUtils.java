@@ -24,12 +24,12 @@ import com.limemojito.trading.model.tick.TickInputStreamToCsv;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.LocalDukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
-import lombok.extern.slf4j.Slf4j;
-
 import jakarta.validation.Configuration;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;

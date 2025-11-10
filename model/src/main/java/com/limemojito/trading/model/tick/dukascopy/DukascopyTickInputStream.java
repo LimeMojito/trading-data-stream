@@ -20,13 +20,13 @@ package com.limemojito.trading.model.tick.dukascopy;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.TickVisitor;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Validator;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -175,7 +175,8 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
 
     private void lazyLoad() throws IOException {
         if (!readAttempted) {
-            final InputStream inputStream = (directSuppliedInputStream != null) ? directSuppliedInputStream : cache.stream(
+            final InputStream inputStream = (directSuppliedInputStream
+                                             != null) ? directSuppliedInputStream : cache.stream(
                     path);
             try {
                 delegate = new LZMACompressorInputStream(inputStream);

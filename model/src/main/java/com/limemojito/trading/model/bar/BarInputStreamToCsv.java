@@ -17,8 +17,8 @@
 
 package com.limemojito.trading.model.bar;
 
-import com.limemojito.trading.model.stream.TradingCsvStream;
 import com.limemojito.trading.model.TradingInputStream;
+import com.limemojito.trading.model.stream.TradingCsvStream;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -36,10 +36,24 @@ import java.util.List;
 @Slf4j
 public class BarInputStreamToCsv extends TradingCsvStream<Bar> {
 
+    /**
+     * Create a CSV writer over a bar input stream, writing to an {@link OutputStream}.
+     *
+     * @param barInputStream source of bars to read
+     * @param outputStream   destination to write CSV bytes to
+     * @throws IOException if the underlying stream cannot be written
+     */
     public BarInputStreamToCsv(TradingInputStream<Bar> barInputStream, OutputStream outputStream) throws IOException {
         super(barInputStream, outputStream);
     }
 
+    /**
+     * Create a CSV writer over a bar input stream, writing to a character {@link Writer}.
+     *
+     * @param barInputStream source of bars to read
+     * @param outputWriter   destination to write CSV text to
+     * @throws IOException if the underlying writer cannot be written
+     */
     public BarInputStreamToCsv(TradingInputStream<Bar> barInputStream, Writer outputWriter) throws IOException {
         super(barInputStream, outputWriter);
     }

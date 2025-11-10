@@ -57,37 +57,45 @@ public final class TradingInputStreamBackwardsExtender {
                                                  Instant endTime,
                                                  BarVisitor barVisitor,
                                                  TradingSearch tradingSearch) throws IOException {
-        return new TradingInputBackwardsSearchStream<>(barCountBefore, new TradingInputBackwardsSearchStream.Search<>() {
-            private Instant start;
-            private Instant end;
+        return new TradingInputBackwardsSearchStream<>(barCountBefore,
+                                                       new TradingInputBackwardsSearchStream.Search<>() {
+                                                           private Instant start;
+                                                           private Instant end;
 
-            @Override
-            public void sort(List<Bar> data) {
-                data.sort(Comparator.comparing(Bar::getStartMillisecondsUtc));
-            }
+                                                           @Override
+                                                           public void sort(List<Bar> data) {
+                                                               data.sort(Comparator.comparing(Bar::getStartMillisecondsUtc));
+                                                           }
 
-            @Override
-            public boolean prepare(int searchCount) {
-                final Duration duration = period.getDuration().multipliedBy(barCountBefore);
-                final Instant theBeginningOfTime = tradingSearch.getTheBeginningOfTime();
-                start = endTime.minus(duration.multipliedBy(searchCount + 1));
-                if (start.compareTo(theBeginningOfTime) < 0) {
-                    log.warn("Reached the beginning of Time {}", theBeginningOfTime);
-                    start = theBeginningOfTime;
-                }
-                end = endTime.minus(duration.multipliedBy(searchCount)).minusNanos(1);
-                return start.equals(theBeginningOfTime);
-            }
+                                                           @Override
+                                                           public boolean prepare(int searchCount) {
+                                                               final Duration duration = period.getDuration()
+                                                                                               .multipliedBy(
+                                                                                                       barCountBefore);
+                                                               final Instant theBeginningOfTime = tradingSearch.getTheBeginningOfTime();
+                                                               start = endTime.minus(duration.multipliedBy(searchCount
+                                                                                                           + 1));
+                                                               if (start.compareTo(theBeginningOfTime) < 0) {
+                                                                   log.warn("Reached the beginning of Time {}",
+                                                                            theBeginningOfTime);
+                                                                   start = theBeginningOfTime;
+                                                               }
+                                                               end = endTime.minus(duration.multipliedBy(searchCount))
+                                                                            .minusNanos(1);
+                                                               return start.equals(theBeginningOfTime);
+                                                           }
 
-            @Override
-            public TradingInputStream<Bar> perform() throws IOException {
-                log.debug("Performing search between {} and {}", start, end);
-                return tradingSearch.aggregateFromTicks(symbol,
-                                                        period,
-                                                        start,
-                                                        end,
-                                                        barVisitor);
-            }
-        });
+                                                           @Override
+                                                           public TradingInputStream<Bar> perform() throws IOException {
+                                                               log.debug("Performing search between {} and {}",
+                                                                         start,
+                                                                         end);
+                                                               return tradingSearch.aggregateFromTicks(symbol,
+                                                                                                       period,
+                                                                                                       start,
+                                                                                                       end,
+                                                                                                       barVisitor);
+                                                           }
+                                                       });
     }
 }

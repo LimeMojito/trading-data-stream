@@ -19,7 +19,14 @@ package com.limemojito.trading.model.bar;
 
 import com.limemojito.trading.model.stream.TradingInputStreamMapper;
 
+/**
+ * Callback invoked for each {@link Bar} as it is produced or streamed.
+ * Implementations can perform side-effects such as persistence, logging, or aggregation.
+ */
 public interface BarVisitor extends TradingInputStreamMapper.Visitor<Bar> {
+    /**
+     * No-op visitor that performs no action when invoked.
+     */
     BarVisitor NO_VISITOR = (bar) -> {
     };
 }

@@ -39,7 +39,9 @@ public abstract class TradingInputStreamMapper {
         return streamFrom(modelData, visitor, null);
     }
 
-    public static <MODEL> TradingInputStream<MODEL> streamFrom(Collection<MODEL> modelData, Visitor<MODEL> visitor, Runnable onClose) {
+    public static <MODEL> TradingInputStream<MODEL> streamFrom(Collection<MODEL> modelData,
+                                                               Visitor<MODEL> visitor,
+                                                               Runnable onClose) {
         return new CollectionStream<>(modelData, visitor, onClose);
     }
 
@@ -65,7 +67,9 @@ public abstract class TradingInputStreamMapper {
         private final TradingInputStream<MODEL> dataStream;
         private final Runnable onClose;
 
-        private DelegatingStream(Transformer<MODEL, TRANSFORMED> transformer, TradingInputStream<MODEL> dataStream, Runnable onClose) {
+        private DelegatingStream(Transformer<MODEL, TRANSFORMED> transformer,
+                                 TradingInputStream<MODEL> dataStream,
+                                 Runnable onClose) {
             this.transformer = transformer;
             this.dataStream = dataStream;
             this.onClose = onClose;

@@ -53,7 +53,7 @@ public class DukascopyBarSearch extends BaseDukascopySearch {
                   criteria.getEnd());
         final Predicate<Bar> trimFilter = bar ->
                 bar.getStartInstant().compareTo(criteria.getStart()) >= 0
-                        && bar.getStartInstant().compareTo(criteria.getEnd()) <= 0;
+                && bar.getStartInstant().compareTo(criteria.getEnd()) <= 0;
         final BarVisitor barVisitAfterTrim = bar -> {
             if (trimFilter.test(bar)) {
                 barVisitor.visit(bar);

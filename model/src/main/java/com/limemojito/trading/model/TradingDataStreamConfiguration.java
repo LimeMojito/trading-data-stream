@@ -26,12 +26,11 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopySearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.LocalDukascopyCache;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-
-import jakarta.validation.Validator;
 
 /**
  * An example Spring configuration with a local file cache.  You can replace the local cache chain with an S3-&gt;local-&gt;no-cache as well.

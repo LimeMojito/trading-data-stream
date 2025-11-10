@@ -40,7 +40,7 @@ public class TradingInputStreamCombiner<Model> implements TradingInputStream<Mod
      * @see TradingInputStream
      */
     public TradingInputStreamCombiner(Iterator<TradingInputStream<Model>> inputStreamsIterator,
-                               Predicate<Model> filter) {
+                                      Predicate<Model> filter) {
         this.inputStreamsIterator = inputStreamsIterator;
         this.filter = filter;
     }

@@ -21,16 +21,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.limemojito.trading.model.StreamData;
 import com.limemojito.trading.model.UtcTimeUtils;
 import com.limemojito.trading.model.tick.Tick;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -41,6 +41,19 @@ import java.util.function.BinaryOperator;
 
 import static java.time.Instant.ofEpochMilli;
 
+/**
+ * Immutable OHLC bar representing aggregated tick data over a fixed period for a single symbol and stream.
+ * <p>
+ * A bar is defined by its start time (UTC, inclusive), end time (UTC, inclusive), the aggregation {@link Period},
+ * the trading {@code symbol}, and the four price points: open, high, low, and close (integer pips/points).
+ * The bar also records the {@link StreamSource source} provenance aggregated from its input ticks.
+ * </p>
+ * <p>
+ * Instances are value objects built via Lombok's {@link lombok.Builder} and validated using Jakarta Bean Validation
+ * annotations placed on fields. Convenience methods are provided to compute period boundaries and relations between
+ * bars, and to expose commonly used temporal representations.
+ * </p>
+ */
 @Value
 @Builder(toBuilder = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -84,52 +97,103 @@ public class Bar implements StreamData<Bar> {
     @NotNull
     private final StreamSource source;
 
+    /**
+     * Calculate how many bars of the supplied {@link Period} fit between two instants.
+     * The end is exclusive.
+     *
+     * @param period the bar period to measure with
+     * @param start  start time (inclusive)
+     * @param end    end time (exclusive)
+     * @return number of bars required to cover {@code [start, end)}
+     */
     public static long barsIn(Period period, Temporal start, Temporal end) {
         return period.periodsIn(Duration.between(start, end));
     }
 
+    /**
+     * Calculate how many bars of the supplied {@link Period} fit in a given {@link Duration}.
+     *
+     * @param period        the bar period to measure with
+     * @param largeDuration the overall duration window
+     * @return number of bars that fit within {@code largeDuration}
+     */
     public static long barsIn(Period period, Duration largeDuration) {
         return period.periodsIn(largeDuration);
     }
 
+    /**
+     * Compute the UTC start millisecond of the bar that contains the supplied epoch time.
+     *
+     * @param period       target bar period
+     * @param milliseconds epoch time in milliseconds (UTC)
+     * @return start of the containing bar in epoch milliseconds (UTC)
+     */
     public static long startMilliSecondsFor(Period period, long milliseconds) {
         return period.round(milliseconds);
     }
 
+    /**
+     * Compute the UTC end millisecond (inclusive) of the bar that contains the supplied epoch time.
+     *
+     * @param period       target bar period
+     * @param milliseconds epoch time in milliseconds (UTC)
+     * @return end of the containing bar in epoch milliseconds (UTC), inclusive
+     */
     public static long endMilliSecondsFor(Period period, long milliseconds) {
         return period.round(milliseconds) + period.getDurationMilliseconds() - 1L;
     }
 
+    /**
+     * Partition key combining stream id, symbol and period. Useful for grouping bars by their origin.
+     */
     @Override
     public String getPartitionKey() {
         return getStreamId().toString() + "-" + getSymbol() + "-" + getPeriod();
     }
 
+    /**
+     * End of this bar window in epoch milliseconds (UTC), inclusive.
+     */
     @JsonIgnore
     public long getEndMillisecondsUtc() {
         return endMilliSecondsFor(period, startMillisecondsUtc);
     }
 
+    /**
+     * Start of this bar window as a {@link LocalDateTime} in UTC.
+     */
     @JsonIgnore
     public LocalDateTime getStartDateTimeUtc() {
         return UtcTimeUtils.toLocalDateTimeUtc(getStartMillisecondsUtc());
     }
 
+    /**
+     * End of this bar window as a {@link LocalDateTime} in UTC.
+     */
     @JsonIgnore
     public LocalDateTime getEndDateTimeUtc() {
         return UtcTimeUtils.toLocalDateTimeUtc(getEndMillisecondsUtc());
     }
 
+    /**
+     * Start of this bar window as an {@link Instant} (UTC).
+     */
     @JsonIgnore
     public Instant getStartInstant() {
         return UtcTimeUtils.toInstant(getStartMillisecondsUtc());
     }
 
+    /**
+     * End of this bar window as an {@link Instant} (UTC).
+     */
     @JsonIgnore
     public Instant getEndInstant() {
         return UtcTimeUtils.toInstant(getEndMillisecondsUtc());
     }
 
+    /**
+     * Natural ordering by stream, then symbol, then period, then start/end time.
+     */
     @Override
     public int compareTo(Bar other) {
         int rv = StreamData.compareTo(this, other);
@@ -148,24 +212,41 @@ public class Bar implements StreamData<Bar> {
         return rv;
     }
 
+    /**
+     * Whether this bar belongs to the same stream and symbol as the other bar.
+     * Does not compare period or time window.
+     */
     public boolean isInSameStream(Bar other) {
         return streamId.equals(other.getStreamId()) && symbol.equals(other.getSymbol());
     }
 
+    /**
+     * True if this bar lies entirely within the time window of the supplied bar and shares the same stream+symbol.
+     * The supplied bar must be the same or a larger period than this bar.
+     */
     public boolean within(Bar biggerBar) {
         return isInSameStream(biggerBar)
-                && biggerBar.period.ordinal() >= period.ordinal()
-                && biggerBar.getStartMillisecondsUtc() <= getStartMillisecondsUtc()
-                && biggerBar.getEndMillisecondsUtc() >= getEndMillisecondsUtc();
+               && biggerBar.period.ordinal() >= period.ordinal()
+               && biggerBar.getStartMillisecondsUtc() <= getStartMillisecondsUtc()
+               && biggerBar.getEndMillisecondsUtc() >= getEndMillisecondsUtc();
     }
 
+    /**
+     * True if this bar entirely surrounds the time window of the supplied bar and shares the same stream+symbol.
+     * The supplied bar must be the same or a smaller period than this bar.
+     */
     public boolean surrounds(Bar smallerBar) {
         return isInSameStream(smallerBar)
-                && smallerBar.period.ordinal() <= period.ordinal()
-                && smallerBar.getStartMillisecondsUtc() >= getStartMillisecondsUtc()
-                && smallerBar.getEndMillisecondsUtc() <= getEndMillisecondsUtc();
+               && smallerBar.period.ordinal() <= period.ordinal()
+               && smallerBar.getStartMillisecondsUtc() >= getStartMillisecondsUtc()
+               && smallerBar.getEndMillisecondsUtc() <= getEndMillisecondsUtc();
     }
 
+    /**
+     * Supported aggregation periods for bars.
+     * Each constant stores its {@link Duration}, and helper methods are provided to perform
+     * rounding and period arithmetic.
+     */
     @RequiredArgsConstructor
     @Getter
     public enum Period {
@@ -180,19 +261,26 @@ public class Bar implements StreamData<Bar> {
         @JsonIgnore
         private final Duration duration;
 
+        /**
+         * Return the smallest (finest) period from the given collection.
+         *
+         * @param periods collection of periods (must not be empty)
+         * @return the period with the smallest duration
+         * @throws IllegalStateException if the collection is empty
+         */
         public static Period smallest(Collection<Period> periods) {
             return reduce(periods, (a, b) -> a.ordinal() < b.ordinal() ? a : b);
         }
 
+        /**
+         * Return the largest (coarsest) period from the given collection.
+         *
+         * @param periods collection of periods (must not be empty)
+         * @return the period with the largest duration
+         * @throws IllegalStateException if the collection is empty
+         */
         public static Period largest(Collection<Period> periods) {
             return reduce(periods, (a, b) -> a.ordinal() > b.ordinal() ? a : b);
-        }
-
-        private static Period reduce(Collection<Period> periods, BinaryOperator<Period> periodBinaryOperator) {
-            if (periods.isEmpty()) {
-                throw new IllegalStateException("Supplied period list must not be empty");
-            }
-            return periods.stream().reduce(periods.iterator().next(), periodBinaryOperator);
         }
 
         @JsonIgnore
@@ -200,6 +288,12 @@ public class Bar implements StreamData<Bar> {
             return duration.toMillis();
         }
 
+        /**
+         * Compute the number of periods in a larger period
+         *
+         * @param largerPeriod the period to see how much of our period size is contained in.
+         * @return number of periods.
+         */
         public int periodsIn(Period largerPeriod) {
             return (int) periodsIn(largerPeriod.duration);
         }
@@ -216,6 +310,12 @@ public class Bar implements StreamData<Bar> {
             return periodsIn(Duration.between(start, end));
         }
 
+        /**
+         * Compute the number of periods between times.
+         *
+         * @param largeDuration The duration of the larger period.
+         * @return The number of periods required to fill the duration.
+         */
         public long periodsIn(Duration largeDuration) {
             return Math.max(largeDuration.getSeconds() / duration.getSeconds(), 0);
         }
@@ -242,5 +342,13 @@ public class Bar implements StreamData<Bar> {
             final long periodMillis = getDurationMilliseconds();
             return ((epochMilliSeconds / periodMillis) * periodMillis);
         }
+
+        private static Period reduce(Collection<Period> periods, BinaryOperator<Period> periodBinaryOperator) {
+            if (periods.isEmpty()) {
+                throw new IllegalStateException("Supplied period list must not be empty");
+            }
+            return periods.stream().reduce(periods.iterator().next(), periodBinaryOperator);
+        }
+
     }
 }

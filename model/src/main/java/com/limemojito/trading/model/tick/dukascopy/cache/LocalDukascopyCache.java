@@ -53,7 +53,7 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
      * Property for overriding local cache location.  Defaults to "user.home"/.dukascopy/.
      */
     public static final String PROP_DIR = DirectDukascopyNoCache.class.getPackageName() + ".localCacheDir";
-    private static final int TO_KB = 1_024;
+    private static final double TO_KB = 1_024.0;
 
     private final ObjectMapper mapper;
     private final Path cacheDirectory;

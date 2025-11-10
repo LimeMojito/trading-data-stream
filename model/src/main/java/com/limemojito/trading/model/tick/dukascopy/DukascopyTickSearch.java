@@ -22,10 +22,10 @@ import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.TickVisitor;
 import com.limemojito.trading.model.tick.dukascopy.criteria.Criteria;
 import com.limemojito.trading.model.tick.dukascopy.criteria.TickCriteria;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.validation.Validator;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -82,6 +82,6 @@ public class DukascopyTickSearch extends BaseDukascopySearch {
         Instant criteriaStart = criteria.getStart();
         Instant criteriaEnd = criteria.getEnd();
         return (tickInstant.equals(criteriaStart) || tickInstant.isAfter(criteriaStart))
-                && (tickInstant.isBefore(criteriaEnd) || tickInstant.equals(criteriaEnd));
+               && (tickInstant.isBefore(criteriaEnd) || tickInstant.equals(criteriaEnd));
     }
 }

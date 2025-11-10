@@ -26,11 +26,11 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 
-import jakarta.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,7 +48,7 @@ import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonS
 @Slf4j
 public class S3DukascopyCache extends FallbackDukascopyCache {
 
-    private static final int TO_KB = 1_024;
+    private static final double TO_KB = 1_024.0;
     private final AmazonS3 s3;
     private final String bucketName;
     private final ObjectMapper mapper;

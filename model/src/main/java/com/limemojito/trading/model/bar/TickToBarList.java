@@ -20,13 +20,18 @@ package com.limemojito.trading.model.bar;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.bar.Bar.Period;
 import com.limemojito.trading.model.tick.Tick;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import jakarta.validation.Validator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility that consumes a {@link com.limemojito.trading.model.TradingInputStream} of {@link com.limemojito.trading.model.tick.Tick}
+ * and produces a {@link java.util.List} of {@link Bar} by aggregating ticks into the requested period.
+ * Bars are visited via an optional {@link BarVisitor} as they are produced.
+ */
 @Slf4j
 public class TickToBarList implements AutoCloseable {
     private final TradingInputStream<Tick> dukascopyInputStream;
@@ -34,10 +39,26 @@ public class TickToBarList implements AutoCloseable {
     private final BarVisitor visitor;
     private final Validator validator;
 
+    /**
+     * Construct a converter that aggregates the supplied tick stream into bars of the given period.
+     * No visitor is invoked for produced bars.
+     *
+     * @param validator       validator used for model validation
+     * @param period          aggregation period to produce
+     * @param tickInputStream input tick stream
+     */
     public TickToBarList(Validator validator, Period period, TradingInputStream<Tick> tickInputStream) {
         this(validator, period, tickInputStream, BarVisitor.NO_VISITOR);
     }
 
+    /**
+     * Construct a converter with an explicit {@link BarVisitor} callback that will be invoked for each produced bar.
+     *
+     * @param validator       validator used for model validation
+     * @param period          aggregation period to produce
+     * @param tickInputStream input tick stream
+     * @param visitor         callback to invoke per bar (may be {@link BarVisitor#NO_VISITOR})
+     */
     public TickToBarList(Validator validator,
                          Period period,
                          TradingInputStream<Tick> tickInputStream,
@@ -48,6 +69,12 @@ public class TickToBarList implements AutoCloseable {
         this.dukascopyInputStream = tickInputStream;
     }
 
+    /**
+     * Convert the entire tick input stream into a list of bars for the configured period.
+     * The underlying stream is fully consumed; the returned list is in the original stream order.
+     *
+     * @return list of aggregated bars
+     */
     public List<Bar> convert() {
         final List<Bar> barList = new ArrayList<>();
         final TickBarNotifyingAggregator aggregator = new TickBarNotifyingAggregator(validator,
@@ -62,6 +89,9 @@ public class TickToBarList implements AutoCloseable {
         return barList;
     }
 
+    /**
+     * Close the underlying tick stream and release resources.
+     */
     @Override
     public void close() throws IOException {
         dukascopyInputStream.close();

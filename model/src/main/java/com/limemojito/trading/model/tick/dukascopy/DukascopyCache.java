@@ -19,25 +19,25 @@ package com.limemojito.trading.model.tick.dukascopy;
 
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
-
 import jakarta.validation.Validator;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
 public interface DukascopyCache {
 
-        InputStream stream(String dukascopyPath) throws IOException;
+    InputStream stream(String dukascopyPath) throws IOException;
 
-        int getHitCount();
+    int getHitCount();
 
-        int getMissCount();
+    int getMissCount();
 
-        int getRetrieveCount();
+    int getRetrieveCount();
 
-        String cacheStats();
+    String cacheStats();
 
-        BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch);
+    BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch);
 
     interface BarCache {
         List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException;

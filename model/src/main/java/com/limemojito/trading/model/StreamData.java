@@ -147,9 +147,13 @@ public interface StreamData<DataType extends StreamData<?>> extends Comparable<D
      * Classification of stream identity.
      */
     enum StreamType {
-        /** Backtest stream identity. */
+        /**
+         * Backtest stream identity.
+         */
         Backtest,
-        /** Realtime stream identity. */
+        /**
+         * Realtime stream identity.
+         */
         Realtime
     }
 
@@ -157,9 +161,13 @@ public interface StreamData<DataType extends StreamData<?>> extends Comparable<D
      * Origin of a data item.
      */
     enum StreamSource {
-        /** Live market data. */
+        /**
+         * Live market data.
+         */
         Live,
-        /** Historical (archived) data. */
+        /**
+         * Historical (archived) data.
+         */
         Historical;
 
         /**

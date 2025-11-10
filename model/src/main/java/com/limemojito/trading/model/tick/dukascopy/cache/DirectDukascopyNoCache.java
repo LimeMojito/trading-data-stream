@@ -50,7 +50,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
 
     /**
-     * Defaults to 5.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
+     * Defaults to 15.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
      * Exponential back-off over the number of retries.
      *
      * @see #PROP_RETRY_COUNT
@@ -71,7 +71,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_URL = DirectDukascopyNoCache.class.getPackageName() + ".url";
 
     private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "1.0"));
-    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "5.0"));
+    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "15.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
     private static final RateLimiter RATE_LIMITER = create(PERMITS_PER_SECOND);
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
@@ -151,7 +151,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     BufferedInputStream fetchWithRetry(DataSource url, int callCount) throws IOException {
         try {
             // keep the rate limit here as extra insurance during retries
-            log.debug("Rate limit: {} attempt acquire", RATE_LIMITER.getRate());
+            log.debug("Rate limit: {}/s attempt acquire", RATE_LIMITER.getRate());
             final double waited = RATE_LIMITER.acquire();
             log.info("Loading from {}, waited {}s", url, waited);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
@@ -170,7 +170,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         final double pauseSeconds = PAUSE_SECONDS * callCount;
         try {
             log.info("Dukascopy server error: {}", e.getMessage());
-            log.warn("pausing for {} to retry", pauseSeconds);
+            log.warn("pausing for {}s to retry", pauseSeconds);
             final double toMilliseconds = 1000.0;
             Thread.sleep((long) (pauseSeconds * toMilliseconds));
         } catch (InterruptedException ex) {
