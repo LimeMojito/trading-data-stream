@@ -25,6 +25,16 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
+/**
+ * Combines multiple {@link TradingInputStream} sources into a single stream with optional filtering.
+ * <p>
+ * Streams are consumed in sequence. As soon as the current stream is exhausted, the combiner advances
+ * to the next stream. The provided {@link java.util.function.Predicate} is applied to each element and
+ * only matching elements are yielded.
+ * </p>
+ *
+ * @param <Model> element type being streamed
+ */
 @Slf4j
 public class TradingInputStreamCombiner<Model> implements TradingInputStream<Model> {
     private final Iterator<TradingInputStream<Model>> inputStreamsIterator;
@@ -39,12 +49,24 @@ public class TradingInputStreamCombiner<Model> implements TradingInputStream<Mod
      * @param filter               filter to apply
      * @see TradingInputStream
      */
+    /**
+     * Create a combiner over multiple input streams with an optional element filter.
+     *
+     * @param inputStreamsIterator iterator providing input streams to consume in order
+     * @param filter               predicate to select elements to emit; use {@code m -> true} to accept all
+     */
     public TradingInputStreamCombiner(Iterator<TradingInputStream<Model>> inputStreamsIterator,
                                       Predicate<Model> filter) {
         this.inputStreamsIterator = inputStreamsIterator;
         this.filter = filter;
     }
 
+    /**
+     * Returns the next element from the first underlying stream that has a matching element according to the filter.
+     *
+     * @return the next matching element
+     * @throws NoSuchElementException if no more elements are available
+     */
     @Override
     public Model next() {
         if (peek != null) {
@@ -59,6 +81,11 @@ public class TradingInputStreamCombiner<Model> implements TradingInputStream<Mod
         return next;
     }
 
+    /**
+     * Whether another matching element exists across the remaining streams.
+     *
+     * @return true if a subsequent call to {@link #next()} will succeed
+     */
     @Override
     public boolean hasNext() {
         if (peek != null) {
@@ -68,6 +95,12 @@ public class TradingInputStreamCombiner<Model> implements TradingInputStream<Mod
         return (peek != null);
     }
 
+    /**
+     * Closes the current underlying stream if open. Remaining streams are not opened until needed, so they
+     * do not require closing here.
+     *
+     * @throws IOException if closing the current stream fails
+     */
     @Override
     public void close() throws IOException {
         if (inputStream != null) {

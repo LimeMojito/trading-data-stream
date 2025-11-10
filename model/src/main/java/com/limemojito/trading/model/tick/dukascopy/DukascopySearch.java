@@ -32,6 +32,13 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.time.Instant;
 
+/**
+ * High-level search service that retrieves Dukascopy ticks and aggregates them into bars.
+ * <p>
+ * This service wires together path generation, caching, and the tick/bar search pipelines to provide
+ * a simple API: stream raw {@link Tick} data or aggregate into {@link Bar}s over a requested time range.
+ * </p>
+ */
 @Service
 @Slf4j
 public class DukascopySearch extends BaseDukascopySearch implements TradingSearch {

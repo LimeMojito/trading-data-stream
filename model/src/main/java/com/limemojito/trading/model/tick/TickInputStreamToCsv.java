@@ -35,11 +35,25 @@ import java.util.List;
  */
 @Slf4j
 public class TickInputStreamToCsv extends TradingCsvStream<Tick> {
+    /**
+     * Create a CSV writer over a tick input stream, writing to an {@link OutputStream}.
+     *
+     * @param tickInputStream source of ticks to read
+     * @param outputStream    destination to write CSV bytes to
+     * @throws IOException if the underlying stream cannot be written
+     */
     public TickInputStreamToCsv(TradingInputStream<Tick> tickInputStream,
                                 OutputStream outputStream) throws IOException {
         super(tickInputStream, outputStream);
     }
 
+    /**
+     * Create a CSV writer over a tick input stream, writing to a character {@link Writer}.
+     *
+     * @param tickInputStream source of ticks to read
+     * @param writer          destination to write CSV text to
+     * @throws IOException if the underlying writer cannot be written
+     */
     public TickInputStreamToCsv(TradingInputStream<Tick> tickInputStream, Writer writer) throws IOException {
         super(tickInputStream, writer);
     }

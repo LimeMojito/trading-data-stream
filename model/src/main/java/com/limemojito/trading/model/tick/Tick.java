@@ -31,6 +31,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Immutable market tick representing bid/ask prices and volumes at a specific UTC instant for a symbol and stream.
+ * <p>
+ * Instances are comparable and can be partitioned by {@link #getPartitionKey()} which combines stream id and symbol.
+ * Convenience accessors expose both {@link java.time.LocalDateTime} and {@link java.time.Instant} views of the
+ * {@code millisecondsUtc} timestamp.
+ * </p>
+ */
 @Value
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -82,26 +90,41 @@ public class Tick implements StreamData<Tick> {
     @NotNull
     private final StreamSource source;
 
+    /**
+     * Convenience accessor returning the timestamp as a UTC {@link LocalDateTime} suitable for CSV output.
+     */
     @JsonIgnore
     public LocalDateTime getDateTimeUtc() {
         return UtcTimeUtils.toLocalDateTimeUtc(getMillisecondsUtc());
     }
 
+    /**
+     * Convenience accessor returning the timestamp as an {@link Instant}.
+     */
     @JsonIgnore
     public Instant getInstant() {
         return UtcTimeUtils.toInstant(getMillisecondsUtc());
     }
 
+    /**
+     * Partition key combining stream id and symbol, useful for sharding.
+     */
     @Override
     public String getPartitionKey() {
         return getStreamId().toString() + "-" + getSymbol();
     }
 
+    /**
+     * True when both ticks belong to the same logical stream (same stream id and symbol).
+     */
     @Override
     public boolean isInSameStream(Tick other) {
         return getStreamId().equals(other.getStreamId()) && getSymbol().equals(other.getSymbol());
     }
 
+    /**
+     * Natural ordering: first by {@link StreamData#compareTo(StreamData)} contract, then by symbol, then by timestamp.
+     */
     @Override
     public int compareTo(Tick other) {
         int rv = StreamData.compareTo(this, other);

@@ -72,6 +72,12 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
         this.cacheDirectory = directory;
     }
 
+    /**
+     * Compute the total size, in bytes, of files currently stored in the local cache directory.
+     *
+     * @return total cache size in bytes
+     * @throws IOException if walking the cache directory fails
+     */
     public long getCacheSizeBytes() throws IOException {
         try (Stream<Path> walk = Files.walk(cacheDirectory)) {
             final Optional<Long> size = walk.map(Path::toFile)

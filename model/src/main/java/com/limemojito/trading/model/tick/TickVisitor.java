@@ -19,6 +19,13 @@ package com.limemojito.trading.model.tick;
 
 import com.limemojito.trading.model.stream.TradingInputStreamMapper;
 
+/**
+ * Callback invoked for each {@link Tick} as it is read from a {@link com.limemojito.trading.model.TradingInputStream}.
+ * <p>
+ * Implementations may perform side-effects like metrics, logging, or incremental aggregation. The provided
+ * {@link #NO_VISITOR} is a no-op implementation for convenience.
+ * </p>
+ */
 public interface TickVisitor extends TradingInputStreamMapper.Visitor<Tick> {
     TickVisitor NO_VISITOR = (tick) -> {
     };

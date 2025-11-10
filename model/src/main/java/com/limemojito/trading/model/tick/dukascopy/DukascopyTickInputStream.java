@@ -43,6 +43,13 @@ import static java.lang.String.format;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.time.ZoneOffset.UTC;
 
+/**
+ * Streaming reader over Dukascopy compressed tick files.
+ * <p>
+ * Lazily opens the underlying LZMA-compressed input when first needed, decodes fixed-size
+ * binary tick rows, validates them, and optionally forwards each tick to a visitor.
+ * </p>
+ */
 @Slf4j
 public class DukascopyTickInputStream implements TradingInputStream<Tick> {
     private static final int TICK_ROW_SIZE = 20;
@@ -100,23 +107,14 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         this(validator, path, inputStream, null, visitor);
     }
 
-    private DukascopyTickInputStream(Validator validator,
-                                     String path,
-                                     InputStream directSuppliedInputStream,
-                                     DukascopyCache cache,
-                                     TickVisitor visitor) {
-        this.validator = validator;
-        this.path = path;
-        this.visitor = visitor;
-        final int symbolEndIndex = path.indexOf("/2");
-        final String datePath = path.substring(symbolEndIndex);
-        this.symbol = parseSymbol(path, symbolEndIndex);
-        this.epochGmt = parseGmtStart(datePath);
-        this.buffer = ByteBuffer.allocate(TICK_ROW_SIZE).order(BIG_ENDIAN);
-        this.directSuppliedInputStream = directSuppliedInputStream;
-        this.cache = cache;
-    }
-
+    /**
+     * Whether another tick can be read from the underlying Dukascopy stream.
+     * <p>
+     * Lazily opens the compressed input on first invocation and prefetches one tick to determine availability.
+     * </p>
+     *
+     * @return {@code true} if a subsequent call to {@link #next()} will succeed
+     */
     @Override
     @SneakyThrows
     public boolean hasNext() {
@@ -134,6 +132,12 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         return hasNext();
     }
 
+    /**
+     * Returns the next decoded tick from the stream.
+     *
+     * @return next {@link Tick}
+     * @throws java.util.NoSuchElementException if the end of the stream has been reached
+     */
     @Override
     @SneakyThrows
     public Tick next() {
@@ -142,6 +146,35 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
             throw new NoSuchElementException("No more ticks from " + path);
         }
         return tick;
+    }
+
+    /**
+     * Closes the underlying compressed stream if it has been opened.
+     *
+     * @throws IOException if an I/O error occurs while closing
+     */
+    public void close() throws IOException {
+        if (delegate != null) {
+            delegate.close();
+        }
+    }
+
+
+    private DukascopyTickInputStream(Validator validator,
+                                     String path,
+                                     InputStream directSuppliedInputStream,
+                                     DukascopyCache cache,
+                                     TickVisitor visitor) {
+        this.validator = validator;
+        this.path = path;
+        this.visitor = visitor;
+        final int symbolEndIndex = path.indexOf("/2");
+        final String datePath = path.substring(symbolEndIndex);
+        this.symbol = parseSymbol(path, symbolEndIndex);
+        this.epochGmt = parseGmtStart(datePath);
+        this.buffer = ByteBuffer.allocate(TICK_ROW_SIZE).order(BIG_ENDIAN);
+        this.directSuppliedInputStream = directSuppliedInputStream;
+        this.cache = cache;
     }
 
     private Tick readTick() throws IOException {
@@ -165,12 +198,6 @@ public class DukascopyTickInputStream implements TradingInputStream<Tick> {
         log.trace("Found tick {}", tick);
         visitor.visit(tick);
         return tick;
-    }
-
-    public void close() throws IOException {
-        if (delegate != null) {
-            delegate.close();
-        }
     }
 
     private void lazyLoad() throws IOException {

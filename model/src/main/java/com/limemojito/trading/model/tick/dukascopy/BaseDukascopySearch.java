@@ -23,6 +23,13 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * Base functionality shared by Dukascopy search implementations.
+ * <p>
+ * Provides a common beginning-of-time guard and criteria validation helper used
+ * by both tick and bar search classes.
+ * </p>
+ */
 public class BaseDukascopySearch {
     /**
      * Defaulting the beginning of Dukascopy searches to be 2010.  This puts a limit on recursive searching.

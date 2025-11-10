@@ -84,6 +84,14 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     private final AtomicInteger retryCounter = new AtomicInteger();
     private final AtomicInteger retrievePathCounter = new AtomicInteger();
 
+    /**
+     * Open a buffered stream to the Dukascopy resource identified by the path, honoring the rate limiter
+     * and retry policy for transient server errors.
+     *
+     * @param dukascopyPath path relative to the Dukascopy data root
+     * @return buffered input stream to the remote resource
+     * @throws IOException if the resource cannot be retrieved
+     */
     @Override
     public InputStream stream(String dukascopyPath) throws IOException {
         final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
@@ -94,30 +102,52 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         return stream;
     }
 
+    /**
+     * Number of successful remote resource retrievals performed in this process.
+     */
     @Override
     public int getRetrieveCount() {
         return retrievePathCounter.get();
     }
 
+    /**
+     * Cache hits are always zero for the no-cache implementation.
+     */
     @Override
     public int getHitCount() {
         return 0;
     }
 
+    /**
+     * Cache misses equal the number of retrievals for the no-cache implementation.
+     */
     @Override
     public int getMissCount() {
         return getRetrieveCount();
     }
 
+    /**
+     * Number of retry attempts made due to server errors.
+     */
     public int getRetryCount() {
         return retryCounter.get();
     }
 
+    /**
+     * Human-readable summary of cache activity including retrievals and retries.
+     */
     @Override
     public String cacheStats() {
         return String.format("DirectDukascopyNoCache: %d retrieve(s) %d retry(s)", getRetrieveCount(), getRetryCount());
     }
 
+    /**
+     * Create a bar cache that does no caching and loads directly from Dukascopy.
+     *
+     * @param validator  bean validator for bar data
+     * @param tickSearch provider capable of locating Dukascopy bar files
+     * @return a bar cache implementation without caching
+     */
     @Override
     public BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch) {
         return new DirectDukascopyBarNoCache(validator, tickSearch);
