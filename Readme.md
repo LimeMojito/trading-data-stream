@@ -251,7 +251,7 @@ mvn versions:use-latest-releases -U
 ## 4.0.0
 * Java 21 as a minimum requirement.  Spring support library upgrades. OSS test library updates and API changes.
 * Severely reduced Dukascopy rate limiter to 1ps as 10ps was too aggressive and lead to Dukascopy throttling without 500 throws.
-* Dukascopy rate throttling has changed to be 30 second limiting on "high" request rates without error throws.  This has been reverse-engineered as there is no documentation. The old three times retry on code 500 behavior has been preserved but with a 15 second exponential backoff.
+* Dukascopy rate throttling has changed to be 30 second limiting on "high" request rates without error throws.  This has been reverse-engineered as there is no documentation. The old three times retry on code 500 behavior has been preserved but with a thirty second exponential backoff.
 * Extra debugging logs for tracing rate limiting.
 
 ## 3.0.0

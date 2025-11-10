@@ -48,7 +48,7 @@ import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonS
 @Slf4j
 public class S3DukascopyCache extends FallbackDukascopyCache {
 
-    private static final double TO_KB = 1_024.0;
+    private static final int TO_KB = 1_024;
     private final AmazonS3 s3;
     private final String bucketName;
     private final ObjectMapper mapper;

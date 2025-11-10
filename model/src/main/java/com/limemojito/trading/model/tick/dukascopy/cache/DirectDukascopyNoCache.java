@@ -50,7 +50,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
 
     /**
-     * Defaults to 15.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
+     * Defaults to 30.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
      * Exponential back-off over the number of retries.
      *
      * @see #PROP_RETRY_COUNT
@@ -65,13 +65,18 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_RETRY_COUNT = DirectDukascopyNoCache.class.getPackageName() + ".retryCount";
 
     /**
-     * Defaults to <a href="https://datafeed.dukascopy.com/datafeed/">...</a> which plays nicely with Dukascopy.  Otherwise, they simply stop
+     * Defaults to <a href="https://datafeed.dukascopy.com/datafeed/">...</a> which plays nicely with Dukascopy.
+     * Otherwise, they delay data requests by at least 30s before they start
      * responding if you hit the servers too hard.  Note the slash on the end is required.
      */
     public static final String PROP_URL = DirectDukascopyNoCache.class.getPackageName() + ".url";
 
+    /**
+     * 2025/11/10 Note higher than 1.0 produces back-offs and then 30s delays
+     */
     private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "1.0"));
-    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "15.0"));
+
+    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "30.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
     private static final RateLimiter RATE_LIMITER = create(PERMITS_PER_SECOND);
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
