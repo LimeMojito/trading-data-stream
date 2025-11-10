@@ -88,7 +88,7 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
     }
 
     public void removeCache() throws IOException {
-        log.info("Removing cache at {}", cacheDirectory);
+        log.warn("Removing cache at {}", cacheDirectory);
         try (Stream<Path> walk = Files.walk(cacheDirectory)) {
             //noinspection ResultOfMethodCallIgnored
             walk.sorted(Comparator.reverseOrder())
@@ -136,7 +136,6 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
             Path cachePath = Path.of(cacheDirectory.toString(), path);
             //noinspection ResultOfMethodCallIgnored
             cachePath.toFile().getParentFile().mkdirs();
-            log.debug("Saving {} to local cache {}", path, cachePath);
             Files.copy(input, cachePath);
             log.debug("Saved {} in local cache {} {}KB", path, cachePath, Files.size(cachePath) / TO_KB);
         } else {

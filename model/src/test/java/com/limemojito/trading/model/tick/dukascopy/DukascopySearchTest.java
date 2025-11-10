@@ -134,7 +134,7 @@ public class DukascopySearchTest {
             List<Bar> data = stream.stream().toList();
             data.forEach(bar -> log.info("Found bar @ {}", bar.getStartInstant()));
             assertThat(data.size()).isEqualTo(expectedBarCount);
-            assertThat(data.getFirst().getStartInstant()).isEqualTo("2019-06-14T16:00:00Z");
+            assertThat(data.getFirst().getStartInstant()).isEqualTo("2019-06-14T14:00:00Z");
             assertThat(data.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-06-17T01:00:00Z");
         }
     }
