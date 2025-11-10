@@ -12,7 +12,7 @@ Library
 <dependency>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>model</artifactId>
-    <version>4.0.0</version>
+    <version>4.0.1</version>
 </dependency>
 ```
 
@@ -83,7 +83,7 @@ this produces the model jar, example-cli and a cache primer application.
 *note* that files are cached locally in ~/.dukascopy-cache. See LocalDukascopyCache.java for details.
 
 ```shell
-java -jar example-cli/target/example-cli-4.0.0.jar --symbol=NZDUSD --period=M5 \
+java -jar example-cli/target/example-cli-4.0.1.jar --symbol=NZDUSD --period=M5 \
   --start=2018-01-02T00:00:00Z --end=2018-01-02T00:59:59Z --output=test-nz.csv  
 ```
 
@@ -95,7 +95,7 @@ See S3DukascopyCache.java and the chain configuration in DataStreamCli.java for 
 
 ```shell
 aws s3 mb s3://test-tick-bucket
-java -jar example-cli/target/example-cli-4.0.0.jar --spring.profiles.active=s3 \
+java -jar example-cli/target/example-cli-4.0.1.jar --spring.profiles.active=s3 \
   --bucket-name=test-tick-bucket --symbol=AUDUSD --period=M5 --start=2018-01-02T00:00:00Z \
   --end=2018-01-02T00:59:59Z --output=test-au.csv  
 ```
@@ -103,7 +103,7 @@ java -jar example-cli/target/example-cli-4.0.0.jar --spring.profiles.active=s3 \
 ## Prime a local cache with AUDUSD and EURUSD 2 months
 
 ```shell
-java -jar cache-primer/target/cache-primer-4.0.0.jar --symbol=AUDUSD --symbol EURUSD \
+java -jar cache-primer/target/cache-primer-4.0.1.jar --symbol=AUDUSD --symbol EURUSD \
   --start=2018-01-01T00:00:00Z --end=2018-03-01T00:59:59Z  
 ```
 
@@ -114,7 +114,7 @@ See S3DukascopyCache.java and the chain configuration in CachePrimer.java for de
 
 ```shell
 aws s3 mb s3://test-tick-bucket
-java -jar cache-primer/target/cache-primer-4.0.0.jar --spring.profiles.active=s3 \
+java -jar cache-primer/target/cache-primer-4.0.1.jar --spring.profiles.active=s3 \
   --bucket-name=test-tick-bucket --symbol=AUDUSD --symbol EURUSD \
   --start=2018-01-01T00:00:00Z --end=2018-03-01T00:59:59Z  
 ```
@@ -151,7 +151,7 @@ Run on an M1 Max with 100MB internet retrieving 559 M10 bars. Your performance m
 Worst case is dependent on how many days of H1 tick files are required to answer query.
 
 ```shell
-java -jar example-cli/target/example-cli-4.0.0.jar --symbol=EURUSD --period=M10 \
+java -jar example-cli/target/example-cli-4.0.1.jar --symbol=EURUSD --period=M10 \
 --start="2019-05-07T00:00:00Z" --end="2019-05-11T00:00:00Z" --output=./test.csv
 ```
 
@@ -257,6 +257,9 @@ mvn versions:use-latest-releases -U
 ---
 
 # Changes
+          
+## 4.0.1
+* OSS deployment fixes.
 
 ## 4.0.0
 
