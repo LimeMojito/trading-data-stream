@@ -126,9 +126,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <!-- short retries for testing purposes -->
+                        <!-- short retries for testing purposes, still need to be effective for a rate limit! -->
                         <com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
-                            1
+                            10
                         </com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
                     </systemPropertyVariables>
                 </configuration>

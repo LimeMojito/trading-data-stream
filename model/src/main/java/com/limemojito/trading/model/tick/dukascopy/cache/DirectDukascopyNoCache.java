@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.util.concurrent.RateLimiter.create;
 import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.lang.System.getProperty;
@@ -63,6 +62,13 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_RETRY_COUNT = DirectDukascopyNoCache.class.getPackageName() + ".retryCount";
 
     /**
+     * Defaults to 503.  This is the HTTP error code if we are rate limited by Dukascopy.
+     *
+     */
+    public static final String PROP_RATE_LIMITED_ERROR = DirectDukascopyNoCache.class.getPackageName()
+                                                         + ".rateLimitedError";
+
+    /**
      * Defaults to <a href="https://datafeed.dukascopy.com/datafeed/">...</a> which plays nicely with Dukascopy.
      * Otherwise, they delay data requests by at least 30s before they start
      * responding if you hit the servers too hard.  Note the slash on the end is required.
@@ -70,15 +76,20 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_URL = DirectDukascopyNoCache.class.getPackageName() + ".url";
 
     /**
-     * 2025/11/10 Note higher than 1.0 produces back-offs and then 30s delays
+     * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min, or 10 mins
      */
-    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "1.0"));
+    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "0.91"));
+
+    /**
+     * Error code used to signal a rate limit.
+     */
+    private static final String RATE_LIMITED = getProperty(PROP_RATE_LIMITED_ERROR, "503");
 
     private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "30.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
-    private static final RateLimiter RATE_LIMITER = create(PERMITS_PER_SECOND);
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
     private static final int IO_BUFFER_SIZE = 32 * 1024;
+    private static final RateLimiter RATE_LIMITER = RateLimiter.create(PERMITS_PER_SECOND);
 
     private final AtomicInteger retryCounter;
     private final AtomicInteger retrievePathCounter;
@@ -200,7 +211,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
             log.info("Loading from {}", url);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
         } catch (IOException e) {
-            if (e.getMessage() != null && e.getMessage().contains("500") && callCount <= RETRY_COUNT) {
+            if (e.getMessage() != null && e.getMessage().contains(RATE_LIMITED) && callCount <= RETRY_COUNT) {
                 waitForRetry(e, callCount);
                 retryCounter.getAndIncrement();
                 return fetchWithRetry(url, ++callCount);

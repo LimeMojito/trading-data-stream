@@ -49,10 +49,10 @@ public class DirectDukascopyNoCacheTest {
     }
 
     @Test
-    public void shouldRetryOn500Failure() throws Exception {
+    public void shouldRetryOnRateLimitFailure() throws Exception {
         DirectDukascopyNoCache cache = new DirectDukascopyNoCache();
         doThrow(new IOException(
-                "Server returned HTTP response code: 500 for URL: https://datafeed.dukascopy.com/datafeed/EURUSD/2019/05/14/21h_ticks.bi5"))
+                "Server returned HTTP response code: 503 for URL: https://datafeed.dukascopy.com/datafeed/EURUSD/2019/05/14/21h_ticks.bi5"))
                 .when(mockUrl)
                 .openStream();
 
