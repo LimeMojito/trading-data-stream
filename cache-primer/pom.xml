@@ -22,7 +22,7 @@
     <name>${project.artifactId}</name>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>cache-primer</artifactId>
-    <version>4.0.2-SNAPSHOT</version>
+    <version>4.0.2</version>
     <packaging>jar</packaging>
 
     <parent>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
             <artifactId>model</artifactId>
-            <version>4.0.2-SNAPSHOT</version>
+            <version>4.0.2</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
