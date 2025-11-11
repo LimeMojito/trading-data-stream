@@ -30,7 +30,7 @@
     <name>${project.artifactId}</name>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>model</artifactId>
-    <version>4.0.2</version>
+    <version>4.0.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
