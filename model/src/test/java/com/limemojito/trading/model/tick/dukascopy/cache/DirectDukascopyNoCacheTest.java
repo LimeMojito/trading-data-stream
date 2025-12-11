@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache.STAT_RETRY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
@@ -43,9 +44,9 @@ public class DirectDukascopyNoCacheTest {
         DirectDukascopyNoCache cache = new DirectDukascopyNoCache();
         doThrow(IOException.class).when(mockUrl).openStream();
 
-        assertThat(cache.getRetryCount()).isEqualTo(0);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(0);
         assertThatThrownBy(() -> cache.fetchWithRetry(mockUrl, 1)).isInstanceOf(IOException.class);
-        assertThat(cache.getRetryCount()).isEqualTo(0);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(0);
     }
 
     @Test
@@ -56,19 +57,20 @@ public class DirectDukascopyNoCacheTest {
                 .when(mockUrl)
                 .openStream();
 
-        assertThat(cache.getRetryCount()).isEqualTo(0);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(0);
         assertThatThrownBy(() -> cache.fetchWithRetry(mockUrl, 1)).isInstanceOf(IOException.class);
-        assertThat(cache.getRetryCount()).isEqualTo(3);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(3);
     }
 
     @Test
     public void shouldFetchOk() throws Exception {
         DirectDukascopyNoCache cache = new DirectDukascopyNoCache();
-        assertThat(cache.getRetryCount()).isEqualTo(0);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(0);
         try(InputStream input = cache.stream("EURUSD/2019/05/17/21h_ticks.bi5")){
             log.info("Retrieved OK {}b", IOUtils.toByteArray(input).length);
         }
-        assertThat(cache.getRetrieveCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics().getStat(STAT_RETRY)).isEqualTo(0);
         // well retries are ok here, but we hope they don't happen.
     }
 }

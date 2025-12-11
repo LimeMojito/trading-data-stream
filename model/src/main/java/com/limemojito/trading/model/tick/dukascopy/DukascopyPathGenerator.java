@@ -156,7 +156,6 @@ public class DukascopyPathGenerator {
     }
 
     private void computeDay(List<String> paths, Criteria criteria, LocalDate atDay) {
-
         final int startHour = ifAtUseHourElse(atDay, criteria.getStartUtc(), 0);
         final int endHour = ifAtUseHourElse(atDay, criteria.getEndUtc(), 23);
         for (int h = startHour; h <= endHour; h++) {

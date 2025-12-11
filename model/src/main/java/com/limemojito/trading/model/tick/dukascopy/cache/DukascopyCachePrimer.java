@@ -17,11 +17,11 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.amazonaws.util.IOUtils;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +32,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+/**
+ * Prime a cache by preloading data using the supplied strategy.
+ */
 @Slf4j
 public class DukascopyCachePrimer {
     private final DukascopyCache cache;
@@ -39,6 +42,12 @@ public class DukascopyCachePrimer {
     private final ExecutorService executor;
     private final List<Future<?>> results;
 
+    /**
+     * Prime a cache using the available CPU cores.
+     *
+     * @param cache         Cache strategy to prime.
+     * @param pathGenerator Dukascopy path generator to use for data retrieval.
+     */
     public DukascopyCachePrimer(DukascopyCache cache, DukascopyPathGenerator pathGenerator) {
         this.cache = cache;
         this.pathGenerator = pathGenerator;
@@ -46,10 +55,20 @@ public class DukascopyCachePrimer {
         this.results = new ArrayList<>();
     }
 
+    /**
+     * Clear any pending loads and start a new load.
+     */
     public void newLoad() {
         results.clear();
     }
 
+    /**
+     * Load data for the specified symbol and time range.
+     *
+     * @param symbol Symbol to load data for.
+     * @param start  Start time for data retrieval.
+     * @param end    End time for data retrieval.
+     */
     public void load(String symbol, Instant start, Instant end) {
         List<String> paths = this.pathGenerator.generatePaths(symbol, start, end);
         for (String path : paths) {
@@ -66,6 +85,9 @@ public class DukascopyCachePrimer {
         }
     }
 
+    /**
+     * Wait for the async load to complete.
+     */
     @SneakyThrows
     public void waitForCompletion() {
         log.info("Waiting for completion.");
@@ -74,6 +96,9 @@ public class DukascopyCachePrimer {
         }
     }
 
+    /**
+     * Close and shutdown executors.
+     */
     public void shutdown() {
         executor.shutdownNow();
     }

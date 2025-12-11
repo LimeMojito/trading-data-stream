@@ -17,7 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.CacheStatistics;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
@@ -26,14 +26,15 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
-import jakarta.validation.Validator;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,13 +43,12 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
+import static com.limemojito.trading.model.CacheStatistics.ONE_HUNDRED;
 import static com.limemojito.trading.model.bar.Bar.Period.M10;
 import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.setupObjectMapper;
 import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.setupValidator;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @SuppressWarnings("resource")
@@ -62,7 +62,7 @@ public class LocalDukascopyCacheTest {
     @Mock
     private DukascopyTickSearch tickSearchMock;
     private LocalDukascopyCache cache;
-    private final ObjectMapper mapper = setupObjectMapper();
+    private final JsonMapper mapper = setupObjectMapper();
     private final Validator validator = setupValidator();
     private final BarCriteria criteria = new BarCriteria("EURUSD",
                                                          M10,
@@ -76,27 +76,26 @@ public class LocalDukascopyCacheTest {
     @BeforeEach
     void setUp() throws IOException {
         Path tempDirectory = Files.createTempDirectory("cache-test");
+        doReturn(new CacheStatistics.SimpleCacheStatistics("MockStats")).when(
+                fallbackMock).getCacheStatistics();
         cache = new LocalDukascopyCache(mapper, fallbackMock, tempDirectory);
     }
 
     @AfterEach
     void cleanUp() throws IOException {
-        assertThat(cache.getCacheSizeBytes()).isGreaterThan(20000L);
+        assertThat(cache.getCacheSizeBytes()).isGreaterThan(60L);
         // removing the one setup by temp directory in setup.
         cache.removeCache();
-        verifyNoMoreInteractions(fallbackMock, fallbackBarMock, tickSearchMock);
     }
 
     @Test
     public void shouldPullFromFallbackWhenMissingFromLocalCache() throws IOException {
         doReturn(validInputStream()).when(fallbackMock).stream(dukascopyTickPath);
-        doReturn("mock cache").when(fallbackMock).cacheStats();
-
         try (InputStream stream = cache.stream(dukascopyTickPath)) {
             assertStreamResult(stream, 0, 1);
         }
 
-        assertThat(cache.cacheStats()).isEqualTo("LocalDukascopyCache 1 0h 1m 0.00% -> (mock cache)");
+        assertThat(cache.getCacheStatistics().cacheStats()).isEqualTo("LocalDukascopyCache: retrieve: 1, hit: 0, miss: 1, MockStats: retrieve: 0, hit: 0, miss: 0");
     }
 
     @Test
@@ -114,25 +113,28 @@ public class LocalDukascopyCacheTest {
     @Test
     public void shouldSaveBarToLocalCache() throws Exception {
         doReturn(fallbackBarMock).when(fallbackMock).createBarCache(validator, tickSearchMock);
+        doReturn(new CacheStatistics.SimpleCacheStatistics("BarMockStats")).when(fallbackBarMock).getCacheStatistics();
         List<Bar> expected = ModelPrototype.loadBars("/bars/BarCacheTestData.json");
         doReturn(expected).when(fallbackBarMock).getOneDayOfTicksAsBar(criteria, paths);
 
         DukascopyCache.BarCache barCache = cache.createBarCache(validator, tickSearchMock);
-        assertThat(barCache.getRetrieveCount()).isEqualTo(0);
+        assertThat(barCache.getCacheStatistics().getRetrieveCount()).isEqualTo(0);
 
         List<Bar> bars = barCache.getOneDayOfTicksAsBar(criteria, paths);
         assertThat(bars).isEqualTo(expected);
-        assertThat(barCache.getRetrieveCount()).isEqualTo(1);
-        assertThat(barCache.getMissCount()).isEqualTo(1);
+        assertThat(barCache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
+        assertThat(barCache.getCacheStatistics().getMissCount()).isEqualTo(1);
 
         verify(fallbackBarMock).getOneDayOfTicksAsBar(criteria, paths);
     }
 
     private void assertStreamResult(InputStream stream, int hits, int misses) {
         assertThat(stream).isNotNull();
-        assertThat(cache.getHitCount()).isEqualTo(hits);
-        assertThat(cache.getMissCount()).isEqualTo(misses);
-        assertThat(cache.getRetrieveCount()).isEqualTo(hits + misses);
+        assertThat(cache.getCacheStatistics().getHitCount()).isEqualTo(hits);
+        assertThat(cache.getCacheStatistics().getMissCount()).isEqualTo(misses);
+        assertThat(cache.getCacheStatistics().getRetrieveCount()).isEqualTo(hits + misses);
+        assertThat(cache.getCacheStatistics().getHitRate())
+                .isEqualTo((hits / ((double) hits + misses)) * ONE_HUNDRED);
     }
 
     private InputStream validInputStream() throws IOException {

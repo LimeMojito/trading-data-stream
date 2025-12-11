@@ -17,12 +17,12 @@
 
 package com.limemojito.trading.model.tick;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.json.JsonLoader;
-import com.limemojito.json.ObjectMapperPrototype;
+import com.limemojito.json.JsonMapperPrototype;
 import com.limemojito.test.JsonAsserter;
 import com.limemojito.trading.model.UtcTimeUtils;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.UUID;
 
@@ -48,7 +48,7 @@ public class TickTest {
 
     @Test
     public void shouldBeStableJson() {
-        ObjectMapper objectMapper = ObjectMapperPrototype.buildBootLikeMapper();
+        JsonMapper objectMapper = JsonMapperPrototype.buildBootLikeMapper();
         JsonLoader loader = new JsonLoader(objectMapper);
 
         final Tick tick = createTick(EURUSD, 1528174843000L, 116928, Historical);

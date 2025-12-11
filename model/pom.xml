@@ -23,23 +23,26 @@
     <parent>
         <groupId>com.limemojito.oss.standards</groupId>
         <artifactId>jar-development</artifactId>
-        <version>15.3.5</version>
+        <version>17.0.0</version>
         <relativePath/>
     </parent>
 
     <name>${project.artifactId}</name>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>model</artifactId>
-    <version>4.0.3-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
-        <!-- Interrupted Exception check drops to 92% -->
-        <coverage.exclude.pattern.1>*DirectDukascopyNoCache</coverage.exclude.pattern.1>
-        <coverage.exclude.pattern.2>*Configuration</coverage.exclude.pattern.2>
+        <coverage.line.ratio>0.75</coverage.line.ratio>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.limemojito.oss.standards</groupId>
+            <artifactId>json-utilities</artifactId>
+            <version>17.0.0</version>
+        </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>annotations</artifactId>
@@ -88,15 +91,9 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
             <optional>true</optional>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- Test Dependencies -->
@@ -106,15 +103,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.limemojito.oss.standards</groupId>
-            <artifactId>json-utilities</artifactId>
-            <version>15.3.5</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.limemojito.oss.test</groupId>
             <artifactId>test-utilities</artifactId>
-            <version>15.3.5</version>
+            <version>17.0.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -126,9 +117,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <!-- short retries for testing purposes, still need to be effective for a rate limit! -->
+                        <!-- short retries for testing, short due to 0.5/s limit in play -->
                         <com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
-                            10
+                            2
                         </com.limemojito.trading.model.tick.dukascopy.cache.retrySeconds>
                     </systemPropertyVariables>
                 </configuration>

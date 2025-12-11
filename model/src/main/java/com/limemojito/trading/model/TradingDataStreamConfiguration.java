@@ -17,7 +17,6 @@
 
 package com.limemojito.trading.model;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.bar.TickBarNotifyingAggregator;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
@@ -31,6 +30,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * An example Spring configuration with a local file cache.  You can replace the local cache chain with an S3-&gt;local-&gt;no-cache as well.
@@ -67,7 +67,7 @@ public class TradingDataStreamConfiguration {
      * @return a {@link DukascopyCache} that reads/writes to local disk and falls back to network on misses
      */
     @Bean
-    public DukascopyCache localCacheChain(ObjectMapper mapper) {
+    public DukascopyCache localCacheChain(JsonMapper mapper) {
         return new LocalDukascopyCache(mapper, new DirectDukascopyNoCache());
     }
 

@@ -17,6 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy;
 
+import com.limemojito.trading.model.CacheStatistics;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.TradingSearch;
 import com.limemojito.trading.model.bar.Bar;
@@ -25,6 +26,7 @@ import com.limemojito.trading.model.bar.BarVisitor;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.TickVisitor;
 import jakarta.validation.Validator;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -45,11 +47,12 @@ public class DukascopySearch extends BaseDukascopySearch implements TradingSearc
     public static final String DEFAULT_BEGINNING_OF_TIME = BaseDukascopySearch.DEFAULT_BEGINNING_OF_TIME;
     private final DukascopyTickSearch tickSearch;
     private final DukascopyBarSearch barSearch;
-    private final DukascopyCache cache;
     private final DukascopyCache.BarCache barCache;
+    @Getter
+    private final CacheStatistics.AggregateCacheStatistics cacheStatistics;
 
     /**
-     * Creates a new Dukascopy based search engine.
+     * Creates a new Dukascopy bank data search engine.
      *
      * @param validator     Validates generated objects.
      * @param cache         Caching strategy for model objects.
@@ -59,13 +62,9 @@ public class DukascopySearch extends BaseDukascopySearch implements TradingSearc
                            DukascopyCache cache,
                            DukascopyPathGenerator pathGenerator) {
         this.tickSearch = new DukascopyTickSearch(validator, cache, pathGenerator);
-        this.cache = cache;
         this.barCache = cache.createBarCache(validator, tickSearch);
         this.barSearch = new DukascopyBarSearch(barCache, pathGenerator);
-    }
-
-    public String cacheStats() {
-        return "Tick Cache: " + cache.cacheStats() + "\nBar  Cache: " + barCache.cacheStats();
+        this.cacheStatistics = CacheStatistics.combine(cache.getCacheStatistics(), barCache.getCacheStatistics());
     }
 
     @Override
@@ -76,7 +75,7 @@ public class DukascopySearch extends BaseDukascopySearch implements TradingSearc
     }
 
     /**
-     * A simple search using local cache, generating bars
+     * A simple search using a local cache, generating bars
      *
      * @param args symbol, period, start (yyyy-MM-ddTHH:mm:ssZ), end (yyyy-MM-ddTHH:mm:ssZ)
      * @throws IOException on an IO failure.

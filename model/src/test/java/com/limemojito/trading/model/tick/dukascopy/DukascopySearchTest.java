@@ -22,10 +22,11 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.Tick;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.ThrowableAssert;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.Instant;
+import java.time.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.limemojito.trading.model.bar.Bar.Period.*;
+import static java.time.DayOfWeek.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -42,21 +44,32 @@ public class DukascopySearchTest {
     private final DukascopySearch search = DukascopyUtils.standaloneSetup();
 
     @Test
-    @SuppressWarnings("resource")
-    public void shouldFailIfAfterBeforeStart() {
+    public void shouldFailIfStartBeforeBeginningOfTime() {
         Instant start = Instant.parse("2009-01-02T00:59:59Z");
-        Instant end = Instant.parse("2020-01-02T00:00:00Z");
-        String expectedMessage = "Instant 2020-01-02T00:00:00Z must be before 2009-01-02T00:59:59Z";
+        Instant end = Instant.parse("2024-01-02T00:00:00Z");
+        String expectedMessage = "Start 2009-01-02T00:59:59Z must be after 2020-01-01T00:00:00Z";
         assertArgumentFailure(expectedMessage,
                               () -> search.search("EURUSD",
-                                                  end,
-                                                  start));
+                                                  start,
+                                                  end));
+    }
+
+    @Test
+    @SuppressWarnings("resource")
+    public void shouldFailIfAfterBeforeStart() {
+        Instant start = Instant.parse("2024-01-02T00:59:59Z");
+        Instant end = Instant.parse("2021-01-02T00:00:00Z");
+        String expectedMessage = "Instant 2024-01-02T00:59:59Z must be before 2021-01-02T00:00:00Z";
+        assertArgumentFailure(expectedMessage,
+                              () -> search.search("EURUSD",
+                                                  start,
+                                                  end));
     }
 
     @Test
     @SuppressWarnings("resource")
     public void shouldFailIfEndPastTheBeginningOfTime() {
-        assertThat(search.getTheBeginningOfTime()).isEqualTo("2010-01-01T00:00:00Z");
+        assertThat(search.getTheBeginningOfTime()).isEqualTo("2020-01-01T00:00:00Z");
         search.setTheBeginningOfTime(Instant.parse("2018-01-01T00:00:00Z"));
         assertThat(search.getTheBeginningOfTime()).isEqualTo("2018-01-01T00:00:00Z");
         Instant start = Instant.parse("2009-01-02T00:59:59Z");
@@ -111,63 +124,78 @@ public class DukascopySearchTest {
     public void shouldBarCountForwards() throws Exception {
         int expectedBarCount = 10;
         List<Bar> bars;
+        final Instant start = createInstantConfirming("2020-01-04T18:00:00Z", SATURDAY);
         try (TradingInputStream<Bar> stream = search.aggregateFromTicks("EURUSD",
                                                                         H1,
-                                                                        Instant.parse("2019-01-04T18:00:00Z"),
+                                                                        start,
                                                                         expectedBarCount)) {
             bars = stream.stream().collect(Collectors.toList());
         }
         assertThat(bars).hasSize(expectedBarCount);
         // this has run over a weekend gap
-        assertThat(bars.getFirst().getStartInstant()).isEqualTo("2019-01-04T18:00:00Z");
-        assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-01-07T03:00:00Z");
-        assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-01-07T03:00:00Z");
+        final Instant startInstant = bars.getFirst().getStartInstant();
+        verifyInstantIsOnUTC(startInstant, SUNDAY);
+        assertThat(startInstant).isEqualTo("2020-01-05T22:00:00Z");
+        verifyInstantIsEqualTo(startInstant, "2020-01-06T09:00:00+11:00");
+        assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2020-01-06T07:00:00Z");
+    }
+
+    private void verifyInstantIsEqualTo(Instant startInstant, String zonedDateTime) {
+        assertThat(startInstant).isEqualTo(ZonedDateTime.parse(zonedDateTime).toInstant());
     }
 
     @Test
     public void shouldBarCountBackwardsThroughAWeekend() throws Exception {
         int expectedBarCount = 10;
+        final Instant start = createInstantConfirming("2020-06-15T01:59:59Z", MONDAY);
         try (TradingInputStream<Bar> stream = search.aggregateFromTicks("EURUSD",
                                                                         H1,
                                                                         expectedBarCount,
-                                                                        Instant.parse("2019-06-17T01:59:59Z"))) {
+                                                                        start)) {
             List<Bar> data = stream.stream().toList();
             data.forEach(bar -> log.info("Found bar @ {}", bar.getStartInstant()));
             assertThat(data.size()).isEqualTo(expectedBarCount);
-            assertThat(data.getFirst().getStartInstant()).isEqualTo("2019-06-14T14:00:00Z");
-            assertThat(data.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2019-06-17T01:00:00Z");
+            assertThat(data.getFirst().getStartInstant()).isEqualTo("2020-06-12T14:00:00Z");
+            assertThat(data.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2020-06-15T01:00:00Z");
         }
     }
 
     @Test
     public void shouldNotHaveDuplicateBarsInReverse() throws Exception {
-        try (TradingInputStream<Bar> bars = search.aggregateFromTicks("EURUSD", H1, 80, Instant.parse("2019-07-07T16:00:00Z"))) {
+        try (TradingInputStream<Bar> bars = search.aggregateFromTicks("EURUSD",
+                                                                      H1,
+                                                                      80,
+                                                                      Instant.parse("2024-07-07T16:00:00Z"))) {
             assertStreamOk(bars, 80);
         }
     }
 
     @Test
     public void shouldNotHaveDuplicateBarsInForward() throws Exception {
-        try (TradingInputStream<Bar> bars = search.aggregateFromTicks("EURUSD", H1, Instant.parse("2019-07-07T16:00:00Z"), 80)) {
+        try (TradingInputStream<Bar> bars = search.aggregateFromTicks("EURUSD",
+                                                                      H1,
+                                                                      Instant.parse("2024-07-07T16:00:00Z"),
+                                                                      80)) {
             assertStreamOk(bars, 80);
         }
     }
 
     @Test
     public void shouldStopAtTheBeginningOfTime() throws Exception {
-        int expectedBarCount = 5;
+        int expectedBarCount = 55;
         List<Bar> bars;
+        final Instant start = createInstantConfirming("2020-01-06T05:00:00Z", MONDAY);
         try (TradingInputStream<Bar> stream = search.aggregateFromTicks("EURUSD",
                                                                         H1,
                                                                         100,
-                                                                        // end time is EXCLUSIVE
-                                                                        Instant.parse("2010-01-01T05:00:00Z"))) {
+                // end time is EXCLUSIVE
+                                                                        start)) {
             bars = stream.stream().collect(Collectors.toList());
         }
         assertThat(bars).hasSize(expectedBarCount);
         // this has run over a weekend gap
-        assertThat(bars.getFirst().getStartInstant()).isEqualTo("2010-01-01T00:00:00Z");
-        assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2010-01-01T04:00:00Z");
+        assertThat(bars.getFirst().getStartInstant()).isEqualTo("2020-01-01T22:00:00Z");
+        assertThat(bars.get(expectedBarCount - 1).getStartInstant()).isEqualTo("2020-01-06T04:00:00Z");
     }
 
     @Test
@@ -176,7 +204,7 @@ public class DukascopySearchTest {
         try (TradingInputStream<Bar> stream = search.aggregateFromTicks("EURUSD",
                                                                         H1,
                                                                         expectedBarCount,
-                                                                        Instant.parse("2019-04-08T18:00:00Z"),
+                                                                        Instant.parse("2020-04-08T18:00:00Z"),
                                                                         bar -> log.info("Visited {}", bar))) {
             assertStreamOk(stream, expectedBarCount);
         }
@@ -187,7 +215,7 @@ public class DukascopySearchTest {
         int expectedBarCount = 5;
         try (TradingInputStream<Bar> stream = search.aggregateFromTicks("EURUSD",
                                                                         H1,
-                                                                        Instant.parse("2019-04-08T13:00:00Z"),
+                                                                        Instant.parse("2020-04-08T13:00:00Z"),
                                                                         expectedBarCount,
                                                                         bar -> log.info("Visited {}", bar))) {
             assertStreamOk(stream, expectedBarCount);
@@ -216,7 +244,7 @@ public class DukascopySearchTest {
 
     @Test
     public void shouldAggregateBars() throws Exception {
-        searchBarsExpect("EURUSD", H1, "2019-01-02T00:00:00Z", "2019-01-02T00:59:59Z", 1);
+        searchBarsExpect("EURUSD", H1, "2024-01-02T00:00:00Z", "2024-01-02T00:59:59Z", 1);
         searchBarsExpect("USDCHF", M5, "2020-01-02T00:00:00Z", "2020-01-02T00:59:59Z", 12);
         searchBarsExpect("USDCHF", M10, "2020-01-02T00:00:00Z", "2020-01-02T00:59:59Z", 6);
         searchBarsExpect("USDCHF", M30, "2020-01-02T00:00:00Z", "2020-01-02T00:59:59Z", 2);
@@ -277,5 +305,15 @@ public class DukascopySearchTest {
         assertThatThrownBy(method)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(expectedMessage);
+    }
+
+    private static @NonNull Instant createInstantConfirming(String instant, DayOfWeek dayOfWeek) {
+        final Instant start = Instant.parse(instant);
+        verifyInstantIsOnUTC(start, dayOfWeek);
+        return start;
+    }
+
+    private static void verifyInstantIsOnUTC(Instant start, DayOfWeek dayOfWeek) {
+        assertThat(LocalDateTime.ofInstant(start, ZoneId.of("UTC")).getDayOfWeek()).isEqualTo(dayOfWeek);
     }
 }

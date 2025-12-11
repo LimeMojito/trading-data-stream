@@ -22,10 +22,10 @@ import com.limemojito.trading.model.TickDataLoader;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
+import jakarta.validation.Validator;
 import org.apache.commons.compress.compressors.lzma.LZMACompressorOutputStream;
 import org.junit.jupiter.api.Test;
 
-import jakarta.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class DukascopyTickInputStreamTest {
     private static final Validator VALIDATOR = DukascopyUtils.setupValidator();
 
     @Test
-    public void shouldRunFromCache() throws Exception {
+    public void shouldRunDirectAndReportAsMiss() throws Exception {
         final AtomicInteger visitCounter = new AtomicInteger();
         int tickCount = 0;
         DirectDukascopyNoCache cache = new DirectDukascopyNoCache();
@@ -57,10 +57,12 @@ public class DukascopyTickInputStreamTest {
             }
         }
         assertThat(visitCounter.get()).isEqualTo(tickCount);
-        assertThat(cache.getRetrieveCount()).isEqualTo(1);
-        assertThat(cache.cacheStats()).isEqualTo("DirectDukascopyNoCache: 1 retrieve(s) 0 retry(s)");
-        assertThat(cache.getHitCount()).isEqualTo(0);
-        assertThat(cache.getMissCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics()
+                        .cacheStats()).isEqualTo("DirectDukascopyNoCache: retrieve: 1, hit: 0, miss: 1, retry: 0");
+        assertThat(cache.getCacheStatistics().getHitCount()).isEqualTo(0);
+        assertThat(cache.getCacheStatistics().getMissCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics().getHitRate()).isEqualTo(0.0);
     }
 
     @Test
@@ -71,7 +73,7 @@ public class DukascopyTickInputStreamTest {
                                                                            "EURUSD/2018/06/05/05h_ticks.bi5")) {
             input.next();
         }
-        assertThat(cache.getRetrieveCount()).isEqualTo(1);
+        assertThat(cache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
     }
 
     @Test

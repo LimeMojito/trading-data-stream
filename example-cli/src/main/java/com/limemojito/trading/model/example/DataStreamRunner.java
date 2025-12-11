@@ -53,7 +53,7 @@ public class DataStreamRunner implements ApplicationRunner {
             barsToCsv.convert();
         }
         log.info("Wrote to file://{}", outputFile);
-        log.info(tradingSearch.cacheStats());
+        log.info(tradingSearch.getCacheStatistics().cacheStats());
     }
 
     private Instant getRequiredValueInstant(ApplicationArguments args, String name) {
@@ -65,7 +65,7 @@ public class DataStreamRunner implements ApplicationRunner {
             throw new IllegalArgumentException("Missing command line argument --" + name + "=????");
         }
         List<String> optionValues = args.getOptionValues(name);
-        if (optionValues.isEmpty()) {
+        if (optionValues == null || optionValues.isEmpty()) {
             throw new IllegalArgumentException("No value for command line argument --" + name + " Are you missing = ?");
         }
         return optionValues.getFirst();

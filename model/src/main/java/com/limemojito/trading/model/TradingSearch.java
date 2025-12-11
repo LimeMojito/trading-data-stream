@@ -17,6 +17,7 @@
 
 package com.limemojito.trading.model;
 
+import com.limemojito.trading.model.CacheStatistics.AggregateCacheStatistics;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.bar.BarVisitor;
 import com.limemojito.trading.model.tick.Tick;
@@ -30,31 +31,16 @@ import java.time.Instant;
  * <p>
  * All bar streams are returned in chronological order (oldest to newest), e.g. 2010 &lt; 2018.
  */
-public interface TradingSearch {
-
+public interface TradingSearch extends TradingSearchBounding {
     /**
-     * Sets the limit of searching.
+     * Cache statistics for this search provider.
      *
-     * @param theBeginningOfTime past this point searches will end data.
+     * @return Aggregate cache statistics.
      */
-    void setTheBeginningOfTime(Instant theBeginningOfTime);
+    AggregateCacheStatistics getCacheStatistics();
 
     /**
-     * Gets the limit of searching.
-     *
-     * @return The point where searches past will stop
-     */
-    Instant getTheBeginningOfTime();
-
-    /**
-     * A cache usage description
-     *
-     * @return A string representing cache usage.
-     */
-    String cacheStats();
-
-    /**
-     * Retrieve a steam of ticks.
+     * Retrieve a stream of ticks.
      *
      * @param symbol    Symbol to search on.
      * @param startTime Time to begin search at
@@ -71,7 +57,7 @@ public interface TradingSearch {
     }
 
     /**
-     * Retrieve a steam of ticks.
+     * Retrieve a stream of ticks.
      *
      * @param symbol      Symbol to search on.
      * @param startTime   Time to begin search at
@@ -88,7 +74,7 @@ public interface TradingSearch {
                                     TickVisitor tickVisitor) throws IOException;
 
     /**
-     * Retrieve a steam of bars by aggregating ticks.
+     * Retrieve a stream of bars by aggregating ticks.
      *
      * @param symbol    Symbol to search on.
      * @param period    Period to aggregate ticks to.
@@ -107,7 +93,7 @@ public interface TradingSearch {
     }
 
     /**
-     * Retrieve a steam of bars by aggregating ticks.
+     * Retrieve a stream of bars by aggregating ticks.
      *
      * @param symbol     Symbol to search on.
      * @param period     Period to aggregate ticks to.
@@ -126,7 +112,7 @@ public interface TradingSearch {
                                                BarVisitor barVisitor) throws IOException;
 
     /**
-     * Retrieve a steam of bars by aggregating ticks, limited count backwards in time.
+     * Retrieve a stream of bars by aggregating ticks, limited count backwards in time.
      *
      * @param symbol         Symbol to search on.
      * @param period         Period to aggregate ticks to.
@@ -148,7 +134,7 @@ public interface TradingSearch {
     }
 
     /**
-     * Retrieve a steam of bars by aggregating ticks, limited count.
+     * Retrieve a stream of bars by aggregating ticks, limited count.
      *
      * @param symbol         Symbol to search on.
      * @param period         Period to aggregate ticks to.
@@ -173,7 +159,7 @@ public interface TradingSearch {
     }
 
     /**
-     * Retrieve a steam of bars by aggregating ticks, limited count forwards in time.
+     * Retrieve a stream of bars by aggregating ticks, limited count forwards in time.
      *
      * @param symbol        Symbol to search on.
      * @param period        Period to aggregate ticks to.
@@ -194,7 +180,7 @@ public interface TradingSearch {
     }
 
     /**
-     * Retrieve a steam of bars by aggregating ticks, limited count forwards in time.
+     * Retrieve a stream of bars by aggregating ticks, limited count forwards in time.
      *
      * @param symbol        Symbol to search on.
      * @param period        Period to aggregate ticks to.

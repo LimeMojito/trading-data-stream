@@ -60,14 +60,14 @@ public class Tick implements StreamData<Tick> {
     private final String symbol;
 
     /**
-     * This is asking price for parcel size, so 100,000 for Forex
+     * This is the asking price for parcel size, so 100,000 for Forex
      */
     @NotNull
     @Min(1)
     private final int ask;
 
     /**
-     * This is asking price for parcel size, so 100,000 for Forex
+     * This is the bid price for parcel size, so 100,000 for Forex
      */
     @NotNull
     @Min(1)

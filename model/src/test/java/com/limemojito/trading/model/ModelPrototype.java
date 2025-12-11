@@ -17,16 +17,16 @@
 
 package com.limemojito.trading.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.limemojito.json.JsonLoader;
 import com.limemojito.trading.model.StreamData.StreamSource;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.Tick;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,14 +38,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ModelPrototype {
 
-    private static final ObjectMapper OBJECT_MAPPER = DukascopyUtils.setupObjectMapper();
+    private static final JsonMapper OBJECT_MAPPER = DukascopyUtils.setupObjectMapper();
     private static final JsonLoader JSON_LOADER = new JsonLoader(OBJECT_MAPPER);
 
-    public static String toJson(List<Bar> bars) throws JsonProcessingException {
+    public static String toJson(List<Bar> bars) throws JacksonException {
         return OBJECT_MAPPER.writeValueAsString(bars);
     }
 
-    public static List<Bar> loadBars(String resourcePath) throws IOException {
+    public static List<Bar> loadBars(String resourcePath) {
         return JSON_LOADER.loadFrom(resourcePath, new TypeReference<>() {
         });
     }

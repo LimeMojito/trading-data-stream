@@ -17,7 +17,6 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
@@ -26,10 +25,11 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
-import jakarta.validation.Validator;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Slf4j
 public class BarCacheTest {
     private final Validator validator = DukascopyUtils.setupValidator();
-    private final ObjectMapper mapper = DukascopyUtils.setupObjectMapper();
+    private final JsonMapper mapper = DukascopyUtils.setupObjectMapper();
     private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
     private final BarCriteria criteria = new BarCriteria("EURUSD",
                                                          M10,
@@ -60,10 +60,13 @@ public class BarCacheTest {
         final DirectDukascopyBarNoCache directBarNoCache = new DirectDukascopyBarNoCache(validator, tickSearch);
         assertBarsRetrieved(directBarNoCache);
         // this has skipped market closed days.
-        assertThat(directBarNoCache.cacheStats()).isEqualTo("DirectBarNoCache: 21 day retrieve(s)");
-        assertThat(directBarNoCache.getHitCount()).isEqualTo(0);
-        assertThat(directBarNoCache.getMissCount()).isEqualTo(directBarNoCache.getRetrieveCount());
-        assertThat(directBarNoCache.getMissCount()).isEqualTo(21);
+        assertThat(directBarNoCache.getCacheStatistics()
+                                   .cacheStats()).isEqualTo("DirectDukascopyBarNoCache: retrieve: 1, hit: 0, miss: 1");
+        assertThat(directBarNoCache.getCacheStatistics().getHitCount()).isEqualTo(0);
+        assertThat(directBarNoCache.getCacheStatistics().getMissCount()).isEqualTo(directBarNoCache.getCacheStatistics()
+                                                                                                   .getRetrieveCount());
+        assertThat(directBarNoCache.getCacheStatistics().getMissCount()).isEqualTo(1);
+        assertThat(directBarNoCache.getCacheStatistics().getHitRate()).isEqualTo(0.0);
     }
 
     @Test
@@ -82,7 +85,7 @@ public class BarCacheTest {
         DukascopyCache.BarCache localBars = local.createBarCache(validator, tickSearch);
 
         assertBarsRetrieved(localBars);
-        assertThat(localBars.cacheStats()).contains("LocalBarCache", "DirectBarNoCache");
+        assertThat(localBars.getCacheStatistics().cacheStats()).contains("LocalBarCache", "DirectDukascopyBarNoCache");
     }
 
     private void assertBarsRetrieved(DukascopyCache.BarCache cache) throws IOException {

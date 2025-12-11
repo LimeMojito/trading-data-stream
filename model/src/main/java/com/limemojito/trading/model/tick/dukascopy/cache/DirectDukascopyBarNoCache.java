@@ -17,6 +17,8 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
+import com.limemojito.trading.model.CacheStatistics;
+import com.limemojito.trading.model.CacheStatistics.SimpleCacheStatistics;
 import com.limemojito.trading.model.TradingInputStream;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.bar.TickToBarList;
@@ -31,17 +33,34 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.limemojito.trading.model.CacheStatistics.STAT_MISS;
 import static com.limemojito.trading.model.tick.TickVisitor.NO_VISITOR;
 
+/**
+ * Convert dukascopy tick data to bars without caching.
+ */
 @RequiredArgsConstructor
 @Slf4j
 public class DirectDukascopyBarNoCache implements DukascopyCache.BarCache {
     private final Validator validator;
     private final DukascopyTickSearch tickSearch;
-    private final AtomicInteger retrieveCount = new AtomicInteger();
+    private final SimpleCacheStatistics cacheStatistics = new SimpleCacheStatistics(getClass().getSimpleName());
 
+    @Override
+    public CacheStatistics getCacheStatistics() {
+        return cacheStatistics;
+    }
+
+    /**
+     * Convert days of tick data paths to a list of bars.
+     *
+     * @param criteria   bar query to fullfill
+     * @param dayOfPaths Day of paths to retrieve (should be up to 24 one-hour tick data files).
+     * @return the list of bars formed.
+     * @throws IOException              on an IO error.
+     * @throws IllegalArgumentException if the dayOfPaths size is not supported.
+     */
     public List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException {
         if (dayOfPaths.isEmpty()) {
             return Collections.emptyList();
@@ -61,29 +80,9 @@ public class DirectDukascopyBarNoCache implements DukascopyCache.BarCache {
                                                                      NO_VISITOR);
              TickToBarList tickToBarList = new TickToBarList(validator, criteria.getPeriod(), dayOfTicks)) {
             List<Bar> bars = tickToBarList.convert();
-            retrieveCount.addAndGet(dayOfPaths.size());
+            cacheStatistics.incrementStat(STAT_MISS);
             log.info("Retrieved {} bars", bars.size());
             return bars;
         }
-    }
-
-    @Override
-    public int getHitCount() {
-        return 0;
-    }
-
-    @Override
-    public int getMissCount() {
-        return getRetrieveCount();
-    }
-
-    @Override
-    public int getRetrieveCount() {
-        return retrieveCount.get();
-    }
-
-    @Override
-    public String cacheStats() {
-        return String.format("DirectBarNoCache: %d day retrieve(s)", getRetrieveCount());
     }
 }

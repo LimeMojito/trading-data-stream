@@ -18,18 +18,19 @@
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
 import com.google.common.util.concurrent.RateLimiter;
+import com.limemojito.trading.model.CacheStatistics;
+import com.limemojito.trading.model.CacheStatistics.SimpleCacheStatistics;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import jakarta.validation.Validator;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.limemojito.trading.model.CacheStatistics.STAT_MISS;
 import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.lang.System.getProperty;
@@ -62,11 +63,11 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_RETRY_COUNT = DirectDukascopyNoCache.class.getPackageName() + ".retryCount";
 
     /**
-     * Defaults to 503.  This is the HTTP error code if we are rate limited by Dukascopy.
+     * Defaults to 503.  This is the HTTP error code if we have become rate limited by Dukascopy.
      *
      */
     public static final String PROP_RATE_LIMITED_ERROR = DirectDukascopyNoCache.class.getPackageName()
-                                                         + ".rateLimitedError";
+            + ".rateLimitedError";
 
     /**
      * Defaults to <a href="https://datafeed.dukascopy.com/datafeed/">...</a> which plays nicely with Dukascopy.
@@ -76,9 +77,14 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_URL = DirectDukascopyNoCache.class.getPackageName() + ".url";
 
     /**
-     * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min, or 10 mins
+     * Statistic key for retry count.
      */
-    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "0.91"));
+    public static final String STAT_RETRY = "retry";
+
+    /**
+     * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min or larger period.
+     */
+    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "0.5"));
 
     /**
      * Error code used to signal a rate limit.
@@ -90,18 +96,23 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
     private static final int IO_BUFFER_SIZE = 32 * 1024;
     private static final RateLimiter RATE_LIMITER = RateLimiter.create(PERMITS_PER_SECOND);
+    private final SimpleCacheStatistics cacheStatistics;
 
-    private final AtomicInteger retryCounter;
-    private final AtomicInteger retrievePathCounter;
-
+    /**
+     * Creates a new direct Dukascopy fetch configuration with rate limiting.
+     */
     public DirectDukascopyNoCache() {
-        retryCounter = new AtomicInteger();
-        retrievePathCounter = new AtomicInteger();
+        cacheStatistics = new SimpleCacheStatistics(getClass().getSimpleName(), STAT_RETRY);
         log.info("DirectDukascopyNoCache permits/s: {} retrySeconds: {} retryCount: {} url: {}",
                  PERMITS_PER_SECOND,
                  PAUSE_SECONDS,
                  RETRY_COUNT,
                  DUKASCOPY_URL);
+    }
+
+    @Override
+    public CacheStatistics getCacheStatistics() {
+        return cacheStatistics;
     }
 
     /**
@@ -115,49 +126,10 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     @Override
     public InputStream stream(String dukascopyPath) throws IOException {
         final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
-        // play nice with Dukascopy's free data.  And if you don't they stop sending data.
+        // play nice with Dukascopy's free data.  And if you don't, they stop sending data.
         BufferedInputStream stream = fetchWithRetry(url, 1);
-        retrievePathCounter.incrementAndGet();
+        cacheStatistics.incrementStat(STAT_MISS);
         return stream;
-    }
-
-    /**
-     * Number of successful remote resource retrievals performed in this process.
-     */
-    @Override
-    public int getRetrieveCount() {
-        return retrievePathCounter.get();
-    }
-
-    /**
-     * Cache hits are always zero for the no-cache implementation.
-     */
-    @Override
-    public int getHitCount() {
-        return 0;
-    }
-
-    /**
-     * Cache misses equal the number of retrievals for the no-cache implementation.
-     */
-    @Override
-    public int getMissCount() {
-        return getRetrieveCount();
-    }
-
-    /**
-     * Number of retry attempts made due to server errors.
-     */
-    public int getRetryCount() {
-        return retryCounter.get();
-    }
-
-    /**
-     * Human-readable summary of cache activity including retrievals and retries.
-     */
-    @Override
-    public String cacheStats() {
-        return String.format("DirectDukascopyNoCache: %d retrieve(s) %d retry(s)", getRetrieveCount(), getRetryCount());
     }
 
     /**
@@ -176,22 +148,13 @@ public class DirectDukascopyNoCache implements DukascopyCache {
      * Exposed for testing
      */
     interface DataSource {
+        /**
+         * Get data from data source.
+         *
+         * @return Data from data source.
+         * @throws IOException on an io failure.
+         */
         InputStream openStream() throws IOException;
-    }
-
-    @Value
-    @SuppressWarnings("RedundantModifiersValueLombok")
-    private static final class UrlDataSource implements DataSource {
-        private final String url;
-
-        @Override
-        public InputStream openStream() throws IOException {
-            return URI.create(url).toURL().openStream();
-        }
-
-        public String toString() {
-            return url;
-        }
     }
 
     /**
@@ -213,7 +176,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         } catch (IOException e) {
             if (e.getMessage() != null && e.getMessage().contains(RATE_LIMITED) && callCount <= RETRY_COUNT) {
                 waitForRetry(e, callCount);
-                retryCounter.getAndIncrement();
+                cacheStatistics.incrementStat(STAT_RETRY);
                 return fetchWithRetry(url, ++callCount);
             } else {
                 throw e;
@@ -231,6 +194,19 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         } catch (InterruptedException ex) {
             log.info("Interrupted wait of {}s", pauseSeconds);
             throw e;
+        }
+    }
+
+    private record UrlDataSource(String url) implements DataSource {
+        @Override
+        public InputStream openStream() throws IOException {
+            return URI.create(url).toURL().openStream();
+        }
+
+        @SuppressWarnings("NullableProblems")
+        @Override
+        public String toString() {
+            return url;
         }
     }
 }

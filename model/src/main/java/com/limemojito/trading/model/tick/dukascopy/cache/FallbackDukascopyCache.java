@@ -17,15 +17,22 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.amazonaws.util.IOUtils;
+import com.limemojito.trading.model.CacheStatistics;
+import com.limemojito.trading.model.CacheStatistics.AggregateCacheStatistics;
+import com.limemojito.trading.model.CacheStatistics.SimpleCacheStatistics;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
+
+import static com.limemojito.trading.model.CacheStatistics.STAT_HIT;
+import static com.limemojito.trading.model.CacheStatistics.STAT_MISS;
 
 /**
  * Base decorator that adds a simple read-through caching layer in front of another {@link DukascopyCache}.
@@ -35,69 +42,64 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Hit/miss statistics are tracked for observability via {@link #cacheStats()}.
  * </p>
  */
+@Slf4j
 public abstract class FallbackDukascopyCache implements DukascopyCache {
 
+    private final SimpleCacheStatistics directStats;
     @Getter(AccessLevel.PROTECTED)
     private final DukascopyCache fallback;
-    private final AtomicInteger cacheMiss;
-    private final AtomicInteger cacheHit;
-    private final AtomicInteger retrieveCount;
+    @Getter
+    private final AggregateCacheStatistics cacheStatistics;
 
+    /**
+     * Create a new cache decorator that will fall back to the supplied {@link DukascopyCache}
+     * when a requested path is not available in the local cache.
+     *
+     * @param fallback the downstream cache/source to query on cache miss; must not be {@code null}
+     */
     public FallbackDukascopyCache(DukascopyCache fallback) {
         this.fallback = fallback;
-        this.cacheMiss = new AtomicInteger();
-        this.cacheHit = new AtomicInteger();
-        this.retrieveCount = new AtomicInteger();
+        this.directStats = new SimpleCacheStatistics(getClass().getSimpleName());
+        this.cacheStatistics = CacheStatistics.combine(directStats, fallback.getCacheStatistics());
     }
 
     @Override
     public InputStream stream(String dukascopyPath) throws IOException {
-        InputStream stream = checkCache(dukascopyPath);
-        if (stream == null) {
-            cacheMiss.incrementAndGet();
-            stream = new ByteArrayInputStream(saveDataFromFallback(dukascopyPath));
+        final InputStream rv;
+        final Optional<InputStream> stream = checkCache(dukascopyPath);
+        if (stream.isEmpty()) {
+            log.debug("Cache miss for {}", dukascopyPath);
+            directStats.incrementStat(STAT_MISS);
+            rv = new ByteArrayInputStream(saveDataFromFallback(dukascopyPath));
         } else {
-            cacheHit.incrementAndGet();
+            log.debug("Cache hit for {}", dukascopyPath);
+            directStats.incrementStat(STAT_HIT);
+            rv = stream.get();
         }
-        retrieveCount.incrementAndGet();
-        return stream;
+        return rv;
     }
 
-    @Override
-    public int getHitCount() {
-        return cacheHit.get();
-    }
-
-    @Override
-    public int getMissCount() {
-        return cacheMiss.get();
-    }
-
-    @Override
-    public int getRetrieveCount() {
-        return retrieveCount.get();
-    }
-
-    @Override
-    public String cacheStats() {
-        final double toPercent = 100.0;
-        return String.format("%s %d %dh %dm %.2f%% -> (%s)",
-                             getClass().getSimpleName(),
-                             getRetrieveCount(),
-                             getHitCount(),
-                             getMissCount(),
-                             getRetrieveCount() > 0 ? (getHitCount() / (double) getRetrieveCount()) * toPercent : 0,
-                             fallback.cacheStats());
-    }
-
+    /**
+     * Persist the provided data stream in the concrete cache implementation so that subsequent
+     * calls to {@link #checkCache(String)} for the same path can be served locally.
+     * <p>
+     * Implementations should not close the provided {@code input}; lifecycle is managed by the caller.
+     * </p>
+     *
+     * @param dukascopyPath path key under which the data should be cached
+     * @param input         the data to cache (positioned at start)
+     * @throws IOException if persisting to the cache fails
+     */
     protected abstract void saveToCache(String dukascopyPath, InputStream input) throws IOException;
 
     /**
+     * Check the cache and return an open input stream if present.
+     *
      * @param dukascopyPath path to check in cache
-     * @return null if not present
+     * @return Optional.empty() if not present
      * @throws IOException on an io failure.
      */
-    protected abstract InputStream checkCache(String dukascopyPath) throws IOException;
+    protected abstract Optional<InputStream> checkCache(String dukascopyPath) throws IOException;
 
     private byte[] saveDataFromFallback(String dukascopyPath) throws IOException {
         try (InputStream fallbackStream = fallback.stream(dukascopyPath)) {

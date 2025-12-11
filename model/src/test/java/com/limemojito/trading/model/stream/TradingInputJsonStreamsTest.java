@@ -17,9 +17,7 @@
 
 package com.limemojito.trading.model.stream;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.limemojito.json.ObjectMapperPrototype;
+import com.limemojito.json.JsonMapperPrototype;
 import com.limemojito.test.JsonAsserter;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.TradingInputStream;
@@ -27,6 +25,8 @@ import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.bar.BarListInputStream;
 import com.limemojito.trading.model.bar.BarVisitor;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -44,13 +44,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TradingInputJsonStreamsTest {
 
-    private final ObjectMapper mapper = ObjectMapperPrototype.buildBootLikeMapper();
+    private final JsonMapper mapper = JsonMapperPrototype.buildBootLikeMapper();
     private final TradingInputJsonStreams jsonStreams = new TradingInputJsonStreams(mapper);
     private final TypeReference<List<Bar>> barListType = new TypeReference<>() {
     };
 
     @Test
-    public void modelsShouldBeJsonable() throws Exception {
+    public void modelsShouldBeJsonable() {
         JsonAsserter.assertSerializeDeserialize(ModelPrototype.createTick("EURUSD", 84365834L, 24, Historical));
         JsonAsserter.assertSerializeDeserialize(ModelPrototype.createBar(UUID.randomUUID(), "EURUSD", H1, 84365834L));
     }

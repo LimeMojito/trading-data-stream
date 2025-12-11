@@ -17,9 +17,7 @@
 
 package com.limemojito.trading.model.example;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.spring.LimeJacksonJsonConfiguration;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.TradingSearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
@@ -28,15 +26,18 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopySearch;
 import com.limemojito.trading.model.tick.dukascopy.cache.DirectDukascopyNoCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.LocalDukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.cache.S3DukascopyCache;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import software.amazon.awssdk.services.s3.S3Client;
+import tools.jackson.databind.json.JsonMapper;
 
-import jakarta.validation.Validator;
-
+@Import(LimeJacksonJsonConfiguration.class)
 @SpringBootApplication
 public class DataStreamCli {
 
@@ -47,8 +48,8 @@ public class DataStreamCli {
 
     @Profile("s3")
     @Bean
-    public AmazonS3 s3() {
-        return AmazonS3Client.builder().build();
+    public S3Client s3() {
+        return S3Client.builder().build();
     }
 
     /**
@@ -63,9 +64,9 @@ public class DataStreamCli {
     @Profile("s3")
     @Bean
     @Primary
-    public DukascopyCache localS3Direct(AmazonS3 s3,
+    public DukascopyCache localS3Direct(S3Client s3,
                                         @Value("${bucket-name}") String bucketName,
-                                        ObjectMapper objectMapper,
+                                        JsonMapper objectMapper,
                                         DirectDukascopyNoCache direct) {
         return new LocalDukascopyCache(objectMapper, new S3DukascopyCache(s3, bucketName, objectMapper, direct));
     }
@@ -74,13 +75,13 @@ public class DataStreamCli {
      * Only enabled when the profile is not s3 (including default).
      *
      * @param objectMapper Jackson object mapper for JSON
-     * @param direct Direct access bean.
+     * @param direct       Direct access bean.
      * @return a configured Local &lt;- Direct cache.
      */
     @Profile("!s3")
     @Bean
     @Primary
-    public DukascopyCache localDirect(ObjectMapper objectMapper,
+    public DukascopyCache localDirect(JsonMapper objectMapper,
                                       DirectDukascopyNoCache direct) {
         return new LocalDukascopyCache(objectMapper, direct);
     }

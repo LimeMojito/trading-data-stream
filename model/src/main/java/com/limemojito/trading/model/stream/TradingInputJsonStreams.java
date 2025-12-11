@@ -18,13 +18,13 @@
 package com.limemojito.trading.model.stream;
 
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.trading.model.TradingInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +46,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Component
 @RequiredArgsConstructor
 public class TradingInputJsonStreams {
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     /**
      * Write the supplied input stream to the output stream using Jackson in ARRAY format.  The output is a streamed write one model object
@@ -130,7 +130,7 @@ public class TradingInputJsonStreams {
         private Model peek;
 
         JsonTradingInputStream(InputStream inputStream,
-                               ObjectMapper mapper,
+                               JsonMapper mapper,
                                Class<Model> type,
                                TradingInputStreamMapper.Visitor<Model> visitor) throws IOException {
             this.visitor = visitor;

@@ -17,8 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.JsonMapperPrototype;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.TickInputStreamToCsv;
@@ -30,6 +29,8 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -48,7 +49,7 @@ public class DukascopyUtils {
     };
     private static DukascopySearch lazySearch;
     private static Validator lazyValidator;
-    private static ObjectMapper lazyMapper;
+    private static JsonMapper lazyMapper;
 
     /**
      * A basic search configuration with local cache suitable for testing only.  Default validator
@@ -68,9 +69,10 @@ public class DukascopyUtils {
      * @param mapper    Jackson JSON api.
      * @return A configured search.
      */
-    public static DukascopySearch standaloneSetup(Validator validator, ObjectMapper mapper) {
+    public static DukascopySearch standaloneSetup(Validator validator, JsonMapper mapper) {
         if (lazySearch == null) {
-            final DukascopyCache cacheChain = new LocalDukascopyCache(mapper, new DirectDukascopyNoCache());
+            final DirectDukascopyNoCache direct = new DirectDukascopyNoCache();
+            final DukascopyCache cacheChain = new LocalDukascopyCache(mapper, direct);
             final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
             lazySearch = new DukascopySearch(validator, cacheChain, pathGenerator);
             log.info("Standalone setup with cache chain {}", cacheChain.getClass().getSimpleName());
@@ -101,11 +103,10 @@ public class DukascopyUtils {
      *
      * @return A basic validator minimal configuration.
      */
-    public static ObjectMapper setupObjectMapper() {
+    public static JsonMapper setupObjectMapper() {
         if (lazyMapper == null) {
-            // register models to get java time support, etc. if on command line/
-            lazyMapper = new ObjectMapper().findAndRegisterModules();
-            log.info("Configured Jackson Object Mapper");
+            log.info("Configured Jackson Object Mapper using JsonMapperPrototype.buildBootLikeMapper()");
+            lazyMapper = JsonMapperPrototype.buildBootLikeMapper();
         }
         return lazyMapper;
     }
@@ -133,11 +134,11 @@ public class DukascopyUtils {
         return outputPath;
     }
 
-    public static InputStream toJsonStream(ObjectMapper mapper, List<Bar> bars) throws IOException {
+    public static InputStream toJsonStream(JsonMapper mapper, List<Bar> bars) throws IOException {
         return new ByteArrayInputStream(mapper.writeValueAsBytes(bars));
     }
 
-    public static List<Bar> fromJsonStream(ObjectMapper mapper, InputStream inputStream) throws IOException {
+    public static List<Bar> fromJsonStream(JsonMapper mapper, InputStream inputStream) throws IOException {
         return mapper.readValue(inputStream, BAR_TYPE);
     }
 

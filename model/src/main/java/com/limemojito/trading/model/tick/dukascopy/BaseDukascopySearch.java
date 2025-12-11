@@ -17,6 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy;
 
+import com.limemojito.trading.model.TradingSearchBounding;
 import com.limemojito.trading.model.tick.dukascopy.criteria.Criteria;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,21 +31,29 @@ import java.time.Instant;
  * by both tick and bar search classes.
  * </p>
  */
-public class BaseDukascopySearch {
+public class BaseDukascopySearch implements TradingSearchBounding {
     /**
-     * Defaulting the beginning of Dukascopy searches to be 2010.  This puts a limit on recursive searching.
+     * Defaulting the beginning of Dukascopy searches to be 2020.  This puts a limit on recursive searching.
      */
-    public static final String DEFAULT_BEGINNING_OF_TIME = "2010-01-01T00:00:00Z";
+    public static final String DEFAULT_BEGINNING_OF_TIME = "2020-01-01T00:00:00Z";
 
     @Setter
     @Getter
     private Instant theBeginningOfTime = Instant.parse(DukascopySearch.DEFAULT_BEGINNING_OF_TIME);
 
-    protected void assertCriteriaTimes(Instant startTime, Instant endTime) {
+    @Override
+    public void assertCriteriaTimes(Instant startTime, Instant endTime) {
+        assertCriteriaTime(startTime, "Start");
+        assertCriteriaTime(endTime, "End");
         Criteria.assertBeforeStart(startTime, endTime);
-        if (startTime.isBefore(theBeginningOfTime)) {
-            throw new IllegalArgumentException(String.format("Start %s must be after %s",
-                                                             startTime,
+    }
+
+    @Override
+    public void assertCriteriaTime(Instant instant, String fieldName) {
+        if (instant.isBefore(theBeginningOfTime)) {
+            throw new IllegalArgumentException(String.format("%s %s must be after %s",
+                                                             fieldName,
+                                                             instant,
                                                              theBeginningOfTime));
         }
     }

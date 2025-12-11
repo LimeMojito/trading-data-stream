@@ -17,13 +17,13 @@
 
 package com.limemojito.trading.model.bar;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.json.JsonLoader;
-import com.limemojito.json.ObjectMapperPrototype;
+import com.limemojito.json.JsonMapperPrototype;
 import com.limemojito.test.JsonAsserter;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.UtcTimeUtils;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -78,7 +78,7 @@ public class BarTest {
 
     @Test
     public void shouldBeStableJson() {
-        ObjectMapper objectMapper = ObjectMapperPrototype.buildBootLikeMapper();
+        JsonMapper objectMapper = JsonMapperPrototype.buildBootLikeMapper();
         JsonLoader loader = new JsonLoader(objectMapper);
 
         final Bar bar = ModelPrototype.createBar(REALTIME_UUID, "EURUSD", H1, 1528174800000L);

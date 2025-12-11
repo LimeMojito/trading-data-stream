@@ -17,9 +17,7 @@
 
 package com.limemojito.trading.model.example;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.json.spring.LimeJacksonJsonConfiguration;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
@@ -31,9 +29,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import software.amazon.awssdk.services.s3.S3Client;
+import tools.jackson.databind.json.JsonMapper;
 
+@Import(LimeJacksonJsonConfiguration.class)
 @SpringBootApplication
 public class CachePrimer {
 
@@ -44,8 +46,8 @@ public class CachePrimer {
 
     @Profile("s3")
     @Bean
-    public AmazonS3 s3() {
-        return AmazonS3Client.builder().build();
+    public S3Client s3() {
+        return S3Client.builder().build();
     }
 
     /**
@@ -58,9 +60,9 @@ public class CachePrimer {
     @Profile("s3")
     @Bean
     @Primary
-    public DukascopyCache s3Direct(AmazonS3 s3,
+    public DukascopyCache s3Direct(S3Client s3,
                                    @Value("${bucket-name}") String bucketName,
-                                   ObjectMapper objectMapper,
+                                   JsonMapper objectMapper,
                                    DirectDukascopyNoCache direct) {
         LocalDukascopyCache fallback = new LocalDukascopyCache(objectMapper, direct);
         return new S3DukascopyCache(s3, bucketName, objectMapper, fallback);
@@ -76,7 +78,7 @@ public class CachePrimer {
     @Profile("!s3")
     @Bean
     @Primary
-    public DukascopyCache localDirect(ObjectMapper objectMapper, DirectDukascopyNoCache direct) {
+    public DukascopyCache localDirect(JsonMapper objectMapper, DirectDukascopyNoCache direct) {
         return new LocalDukascopyCache(objectMapper, direct);
     }
 

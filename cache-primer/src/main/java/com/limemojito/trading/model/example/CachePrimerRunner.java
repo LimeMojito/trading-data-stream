@@ -47,7 +47,7 @@ public class CachePrimerRunner implements ApplicationRunner {
             cacheLoader.load(symbol, start, end);
         }
         cacheLoader.waitForCompletion();
-        log.info(cache.cacheStats());
+        log.info(cache.getCacheStatistics().cacheStats());
         cacheLoader.shutdown();
     }
 

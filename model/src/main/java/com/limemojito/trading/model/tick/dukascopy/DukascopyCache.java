@@ -17,6 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy;
 
+import com.limemojito.trading.model.CacheStatistics;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
 import jakarta.validation.Validator;
@@ -25,30 +26,60 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+/**
+ * Retrieve data from the Dukascopy bank, taking advantage of a cache configuration.
+ */
 public interface DukascopyCache {
 
+    /**
+     * Statistics for the cache.
+     *
+     * @return cache statistics.
+     */
+    CacheStatistics getCacheStatistics();
+
+    /**
+     * Tick data for the supplied dukascopy path.
+     *
+     * @param dukascopyPath path relative to the Dukascopy data root
+     * @return the stream found.
+     * @throws IOException on a data fetch failure.
+     * @see DukascopyPathGenerator
+     */
     InputStream stream(String dukascopyPath) throws IOException;
 
-    int getHitCount();
-
-    int getMissCount();
-
-    int getRetrieveCount();
-
-    String cacheStats();
-
+    /**
+     * Creates a bar cache of the same configuration as this cache.
+     *
+     * @param validator  Bean validator.
+     * @param tickSearch Search interface.
+     * @return Bar Cache implementation.
+     *
+     */
     BarCache createBarCache(Validator validator, DukascopyTickSearch tickSearch);
 
+    /**
+     * Interface for retrieving bars from a cache.
+     */
     interface BarCache {
+
+        /**
+         * Statistics for the cache.
+         *
+         * @return cache statistics.
+         */
+        CacheStatistics getCacheStatistics();
+
+        /**
+         * Retrieves bars from cache or direct tick data conversion.
+         *
+         * @param criteria   bar query to fulfill
+         * @param dayOfPaths Day of paths to retrieve.
+         * @return A list of bars in descending time order.
+         * @throws IOException on an IO failure
+         * @see DukascopyPathGenerator
+         */
         List<Bar> getOneDayOfTicksAsBar(BarCriteria criteria, List<String> dayOfPaths) throws IOException;
-
-        int getHitCount();
-
-        int getMissCount();
-
-        int getRetrieveCount();
-
-        String cacheStats();
     }
 
 }

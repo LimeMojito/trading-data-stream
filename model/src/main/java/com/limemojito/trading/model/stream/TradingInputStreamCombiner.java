@@ -49,12 +49,6 @@ public class TradingInputStreamCombiner<Model> implements TradingInputStream<Mod
      * @param filter               filter to apply
      * @see TradingInputStream
      */
-    /**
-     * Create a combiner over multiple input streams with an optional element filter.
-     *
-     * @param inputStreamsIterator iterator providing input streams to consume in order
-     * @param filter               predicate to select elements to emit; use {@code m -> true} to accept all
-     */
     public TradingInputStreamCombiner(Iterator<TradingInputStream<Model>> inputStreamsIterator,
                                       Predicate<Model> filter) {
         this.inputStreamsIterator = inputStreamsIterator;

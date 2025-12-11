@@ -57,6 +57,7 @@ public final class TradingInputStreamBackwardsExtender {
                                                  Instant endTime,
                                                  BarVisitor barVisitor,
                                                  TradingSearch tradingSearch) throws IOException {
+
         return new TradingInputBackwardsSearchStream<>(barCountBefore,
                                                        new TradingInputBackwardsSearchStream.Search<>() {
                                                            private Instant start;
@@ -69,6 +70,7 @@ public final class TradingInputStreamBackwardsExtender {
 
                                                            @Override
                                                            public boolean prepare(int searchCount) {
+                                                               tradingSearch.assertCriteriaTime(endTime, "End");
                                                                final Duration duration = period.getDuration()
                                                                                                .multipliedBy(
                                                                                                        barCountBefore);

@@ -17,19 +17,15 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
 import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -37,33 +33,61 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.createBarPath;
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.fromJsonStream;
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonStream;
+import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.*;
 import static java.lang.System.getProperty;
 
 /**
- * This can be mixed with other cache strategies to pipeline  For example:
+ * A {@link com.limemojito.trading.model.tick.dukascopy.DukascopyCache} implementation that stores
+ * downloaded Dukascopy data on the local filesystem. This cache is typically used in combination with
+ * another cache or a direct-downloader as a fallback, forming a pipeline where the local cache is
+ * consulted first, and a more remote or expensive source is queried only when needed.
  * <p>
- * <code>DukascopyCache cache = new LocalDukascopyCache(new S3DukascopyCache(s3, "myBucket", new NoCacheDirectDukascopy()))</code>
+ * Default cache directory can be overridden using the system property {@link #PROP_DIR}. If not
+ * provided, it defaults to {@code ${user.home}/.dukascopy-cache}.
+ * <p>
+ * Example pipeline usage:
+ * <pre>
+ * {@code
+ * DukascopyCache cache = new LocalDukascopyCache(
+ *         mapper,
+ *         new S3DukascopyCache(s3, "myBucket", new DirectDukascopyNoCache(mapper))
+ * );
+ * }
+ * </pre>
  */
 @Slf4j
 public class LocalDukascopyCache extends FallbackDukascopyCache {
     /**
-     * Property for overriding local cache location.  Defaults to "user.home"/.dukascopy/.
+     * Property for overriding the local cache location.  Defaults to "user.home"/.dukascopy/.
      */
     public static final String PROP_DIR = DirectDukascopyNoCache.class.getPackageName() + ".localCacheDir";
+
     private static final int TO_KB = 1_024;
 
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
     private final Path cacheDirectory;
 
-    public LocalDukascopyCache(ObjectMapper mapper, DukascopyCache fallback) {
+    /**
+     * Create a local-cache-first {@code DukascopyCache} that falls back to the supplied cache when a
+     * requested object is not present locally. The cache directory is resolved from the system property
+     * {@link #PROP_DIR} and, if absent, defaults to {@code ${user.home}/.dukascopy-cache}.
+     *
+     * @param mapper   Jackson {@link JsonMapper} for serializing/deserializing cached bar collections
+     * @param fallback the cache to consult when an item is not present in the local cache
+     */
+    public LocalDukascopyCache(JsonMapper mapper, DukascopyCache fallback) {
         this(mapper, fallback, new File(getProperty(PROP_DIR, getProperty("user.home")),
                                         ".dukascopy-cache").toPath());
     }
 
-    public LocalDukascopyCache(ObjectMapper mapper, DukascopyCache fallback, Path directory) {
+    /**
+     * Create a local-cache-first {@code DukascopyCache} using the provided cache directory.
+     *
+     * @param mapper    Jackson {@link JsonMapper} for serializing/deserializing cached bar collections
+     * @param fallback  the cache to consult when an item is not present in the local cache
+     * @param directory the root directory on the local filesystem where cache files will be stored
+     */
+    public LocalDukascopyCache(JsonMapper mapper, DukascopyCache fallback, Path directory) {
         super(fallback);
         this.mapper = mapper;
         if (directory.toFile().mkdir()) {
@@ -87,6 +111,12 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
         }
     }
 
+    /**
+     * Recursively deletes all files and directories within the configured local cache directory.
+     * The root directory itself is left in place if it already exists.
+     *
+     * @throws IOException if walking the cache directory fails
+     */
     public void removeCache() throws IOException {
         log.warn("Removing cache at {}", cacheDirectory);
         try (Stream<Path> walk = Files.walk(cacheDirectory)) {
@@ -108,7 +138,7 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
     }
 
     @Override
-    protected InputStream checkCache(String dukascopyPath) throws IOException {
+    protected Optional<InputStream> checkCache(String dukascopyPath) throws IOException {
         return checkLocal(dukascopyPath);
     }
 
@@ -125,9 +155,10 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
         }
 
         @Override
-        protected List<Bar> checkCache(BarCriteria criteria, String firstDukascopyDayPath) throws IOException {
-            InputStream inputStream = checkLocal(createBarPath(criteria, firstDukascopyDayPath));
-            return inputStream == null ? null : fromJsonStream(mapper, inputStream);
+        protected Optional<List<Bar>> checkCache(BarCriteria criteria, String firstDukascopyDayPath) throws
+                                                                                                     IOException {
+            Optional<InputStream> inputStream = checkLocal(createBarPath(criteria, firstDukascopyDayPath));
+            return inputStream.isEmpty() ? Optional.empty() : Optional.of(fromJsonStream(mapper, inputStream.get()));
         }
     }
 
@@ -143,14 +174,14 @@ public class LocalDukascopyCache extends FallbackDukascopyCache {
         }
     }
 
-    private synchronized InputStream checkLocal(String path) throws FileNotFoundException {
-        boolean present = unsafeIsPresent(path);
-        if (present) {
-            File file = Path.of(cacheDirectory.toString(), path).toFile();
+    private synchronized Optional<InputStream> checkLocal(String path) throws FileNotFoundException {
+        File file = Path.of(cacheDirectory.toString(), path).toFile();
+        if (file.isFile()) {
             log.debug("Found in local cache {}", file);
-            return new FileInputStream(file);
+            return Optional.of(new FileInputStream(file));
+        } else {
+            return Optional.empty();
         }
-        return null;
     }
 
     private boolean unsafeIsPresent(String path) {

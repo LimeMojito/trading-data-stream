@@ -17,9 +17,9 @@
 
 package com.limemojito.trading.model.bar;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.limemojito.json.JsonLoader;
-import com.limemojito.json.ObjectMapperPrototype;
+import com.limemojito.json.JsonMapperPrototype;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickInputStream;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TickToBarListTest {
 
-    private final JsonLoader jsonLoader = new JsonLoader(ObjectMapperPrototype.buildBootLikeMapper());
+    private final JsonLoader jsonLoader = new JsonLoader(JsonMapperPrototype.buildBootLikeMapper());
     private final TypeReference<List<Bar>> barListType = new TypeReference<>() {
     };
 

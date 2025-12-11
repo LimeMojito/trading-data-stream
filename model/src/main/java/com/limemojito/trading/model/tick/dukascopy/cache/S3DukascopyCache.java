@@ -17,11 +17,6 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.limemojito.trading.model.bar.Bar;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
@@ -30,15 +25,18 @@ import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.createBarPath;
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.fromJsonStream;
-import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonStream;
+import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.*;
 
 /**
  * A {@link com.limemojito.trading.model.tick.dukascopy.DukascopyCache} implementation that stores and
@@ -50,9 +48,9 @@ import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.toJsonS
 public class S3DukascopyCache extends FallbackDukascopyCache {
 
     private static final int TO_KB = 1_024;
-    private final AmazonS3 s3;
+    private final S3Client s3;
     private final String bucketName;
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     /**
      * Create an S3-backed Dukascopy cache with a fallback cache.
@@ -62,7 +60,7 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
      * @param mapper     Jackson mapper for JSON bar payloads
      * @param fallback   cache to consult when an object is not present in S3
      */
-    public S3DukascopyCache(AmazonS3 s3, String bucketName, ObjectMapper mapper, DukascopyCache fallback) {
+    public S3DukascopyCache(S3Client s3, String bucketName, JsonMapper mapper, DukascopyCache fallback) {
         super(fallback);
         this.s3 = s3;
         this.bucketName = bucketName;
@@ -87,7 +85,7 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
     }
 
     @Override
-    protected InputStream checkCache(String dukascopyPath) {
+    protected Optional<InputStream> checkCache(String dukascopyPath) {
         return checkS3(dukascopyPath);
     }
 
@@ -104,38 +102,46 @@ public class S3DukascopyCache extends FallbackDukascopyCache {
         }
 
         @Override
-        protected List<Bar> checkCache(BarCriteria criteria, String firstDukascopyDayPath) throws IOException {
-            S3ObjectInputStream inputStream = checkS3(createBarPath(criteria, firstDukascopyDayPath));
-            return inputStream == null ? null : fromJsonStream(mapper, inputStream);
+        protected Optional<List<Bar>> checkCache(BarCriteria criteria, String firstDukascopyDayPath) throws IOException {
+            final Optional<InputStream> found = checkS3(createBarPath(criteria, firstDukascopyDayPath));
+            return found.isEmpty() ? Optional.empty() : Optional.of(fromJsonStream(mapper, found.get()));
         }
-
     }
 
     private synchronized void saveToS3(String path, InputStream input, String contentType) throws IOException {
         if (!unsafeIsPresent(path)) {
             final byte[] bytes = IOUtils.toByteArray(input);
-            final ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(bytes.length);
-            metadata.setContentType(contentType);
-            metadata.setContentDisposition(path);
             try (ByteArrayInputStream s3Input = new ByteArrayInputStream(bytes)) {
                 log.info("Saving to s3://{}/{} size {} KB", bucketName, path, bytes.length / TO_KB);
-                s3.putObject(new PutObjectRequest(bucketName, path, s3Input, metadata));
+                RequestBody body = RequestBody.fromInputStream(s3Input, bytes.length);
+                s3.putObject(b -> b.bucket(bucketName)
+                                   .key(path)
+                                   .contentType(contentType)
+                                   .contentDisposition(path)
+                                   .contentLength((long) bytes.length),
+                             body);
             }
         }
     }
 
-    private synchronized S3ObjectInputStream checkS3(String path) {
-        if (unsafeIsPresent(path)) {
+    private synchronized Optional<InputStream> checkS3(String path) {
+        try {
+            final InputStream inputStream = s3.getObjectAsBytes(b -> b.bucket(bucketName).key(path)).asInputStream();
             log.info("Retrieving s3://{}/{}", bucketName, path);
-            return s3.getObject(bucketName, path).getObjectContent();
-        } else {
-            return null;
+            return Optional.of(inputStream);
+        } catch (NoSuchKeyException e) {
+            log.debug("{} is not in S3", path);
+            return Optional.empty();
         }
     }
 
     private boolean unsafeIsPresent(String path) {
-        return s3.doesObjectExist(bucketName, path);
+        try {
+            s3.headObject(b -> b.bucket(bucketName).key(path));
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        }
     }
 }
 

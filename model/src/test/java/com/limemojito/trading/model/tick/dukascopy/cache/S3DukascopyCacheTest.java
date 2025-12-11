@@ -17,11 +17,7 @@
 
 package com.limemojito.trading.model.tick.dukascopy.cache;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.limemojito.trading.model.CacheStatistics;
 import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.ModelPrototype;
 import com.limemojito.trading.model.bar.Bar;
@@ -30,6 +26,9 @@ import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyUtils;
 import com.limemojito.trading.model.tick.dukascopy.criteria.BarCriteria;
+import jakarta.validation.Validator;
+import org.apache.commons.io.IOUtils;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,41 +37,46 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import tools.jackson.databind.json.JsonMapper;
 
-import jakarta.validation.Validator;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.limemojito.trading.model.bar.Bar.Period.M10;
 import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.setupObjectMapper;
 import static com.limemojito.trading.model.tick.dukascopy.DukascopyUtils.setupValidator;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
+@SuppressWarnings("unchecked")
 @ExtendWith(MockitoExtension.class)
 public class S3DukascopyCacheTest {
     private final String dukascopyTickPath = "EURUSD/2018/06/05/05h_ticks.bi5";
     private final String bucketName = "bucketName";
-    private final ObjectMapper mapper = setupObjectMapper();
+    private final JsonMapper mapper = setupObjectMapper();
     private final Validator validator = setupValidator();
     private final DukascopyPathGenerator pathGenerator = new DukascopyPathGenerator(new MarketStatus());
     private final BarCriteria criteria = new BarCriteria("EURUSD",
                                                          M10,
-                                                         Instant.parse("2019-06-07T04:00:00Z"),
-                                                         Instant.parse("2019-06-07T05:00:00Z"));
+                                                         Instant.parse("2020-06-07T04:00:00Z"),
+                                                         Instant.parse("2020-06-07T05:00:00Z"));
     private final List<String> paths = pathGenerator.generatePaths(criteria.getSymbol(),
                                                                    criteria.getDayStart(0),
                                                                    criteria.getDayEnd(0));
     @Mock
-    private AmazonS3 s3;
+    private S3Client s3;
     @Mock
     private DukascopyCache fallbackMock;
     @Mock
@@ -80,11 +84,13 @@ public class S3DukascopyCacheTest {
     @Mock
     private DukascopyCache.BarCache fallbackBarCache;
     @Captor
-    private ArgumentCaptor<PutObjectRequest> putRequestCaptor;
+    private ArgumentCaptor<Consumer<PutObjectRequest.Builder>> putRequestCaptor;
+
     private S3DukascopyCache cache;
 
     @BeforeEach
     void setUp() {
+        doReturn(new CacheStatistics.SimpleCacheStatistics("mockCache")).when(fallbackMock).getCacheStatistics();
         cache = new S3DukascopyCache(s3, bucketName, mapper, fallbackMock);
     }
 
@@ -95,110 +101,152 @@ public class S3DukascopyCacheTest {
 
     @Test
     public void shouldPullFromS3Ok() throws IOException {
-        doReturn(true).when(s3).doesObjectExist(bucketName, dukascopyTickPath);
-        doReturn(validTickObject()).when(s3).getObject(bucketName, dukascopyTickPath);
-        doReturn("mockCache").when(fallbackMock).cacheStats();
+        doReturn(inputToResponse(validDukascopyTickInputStream())).when(s3).getObjectAsBytes(any(Consumer.class));
 
         try (InputStream stream = cache.stream(dukascopyTickPath)) {
             assertStreamResult(stream, 1, 0);
         }
-        assertThat(cache.cacheStats()).isEqualTo("S3DukascopyCache 1 1h 0m 100.00% -> (mockCache)");
+        assertThat(cache.getCacheStatistics()
+                        .cacheStats()).isEqualTo("S3DukascopyCache: retrieve: 1, hit: 1, miss: 0, mockCache: retrieve: 0, hit: 0, miss: 0");
     }
 
     @Test
-    @SuppressWarnings("resource")
     public void shouldFallbackWhenMissingFromS3() throws Exception {
-        doReturn(false).when(s3).doesObjectExist(bucketName, dukascopyTickPath);
-        doReturn(validInputStream()).when(fallbackMock).stream(dukascopyTickPath);
-        doReturn(new PutObjectResult()).when(s3).putObject(putRequestCaptor.capture());
-        doReturn("mockCache").when(fallbackMock).cacheStats();
+        whenNotInCache();
+        whenEmptyCacheOnSave();
+        whenDukascopyCalledOk(validDukascopyTickInputStream());
+        whenSaveCacheOk();
 
         try (InputStream stream = cache.stream(dukascopyTickPath)) {
             assertStreamResult(stream, 0, 1);
         }
-        verify(s3).putObject(putRequestCaptor.getValue());
+
+        verifyS3CacheFetch();
+        verifyS3CacheCheck();
+        verifyS3CachePut();
         assertPutRequest(putRequestCaptor.getValue());
-        assertThat(cache.cacheStats()).isEqualTo("S3DukascopyCache 1 0h 1m 0.00% -> (mockCache)");
+        assertThat(cache.getCacheStatistics().cacheStats()).isEqualTo("S3DukascopyCache: retrieve: 1, hit: 0, miss: 1, mockCache: retrieve: 0, hit: 0, miss: 0");
     }
 
     @Test
     public void shouldFetchBarFromS3Ok() throws Exception {
         doReturn(fallbackBarCache).when(fallbackMock).createBarCache(validator, tickSearch);
-
+        doReturn(new CacheStatistics.SimpleCacheStatistics("BarMockStats")).when(fallbackBarCache).getCacheStatistics();
         DukascopyCache.BarCache barCache = cache.createBarCache(validator, tickSearch);
-        doReturn(true).when(s3).doesObjectExist(eq(bucketName), anyString());
-        doReturn(validBarListObject()).when(s3).getObject(eq(bucketName), anyString());
+        final InputStream inputStream = validBarListInputStream();
+        doReturn(inputToResponse(inputStream)).when(s3).getObjectAsBytes(any(Consumer.class));
 
         List<Bar> bar = barCache.getOneDayOfTicksAsBar(criteria, paths);
 
         assertThat(bar.size()).isGreaterThan(0);
         verify(fallbackMock).createBarCache(validator, tickSearch);
-        verify(s3).doesObjectExist(eq(bucketName), anyString());
-        verify(s3).getObject(eq(bucketName), anyString());
-        assertThat(barCache.getHitCount()).isEqualTo(1);
-        assertThat(barCache.getMissCount()).isEqualTo(0);
-        assertThat(barCache.getRetrieveCount()).isEqualTo(1);
+        verifyS3CacheFetch();
+        assertThat(barCache.getCacheStatistics().getHitCount()).isEqualTo(1);
+        assertThat(barCache.getCacheStatistics().getMissCount()).isEqualTo(0);
+        assertThat(barCache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldSaveBarToS3Ok() throws Exception {
         doReturn(fallbackBarCache).when(fallbackMock).createBarCache(validator, tickSearch);
+        doReturn(new CacheStatistics.SimpleCacheStatistics("BarMockStats")).when(fallbackBarCache).getCacheStatistics();
 
         DukascopyCache.BarCache barCache = cache.createBarCache(validator, tickSearch);
-        doReturn(false).when(s3).doesObjectExist(eq(bucketName), anyString());
+        // is there a bar result in S3?
+        whenNotInCache();
+        // is there a bar result when saving in S3?
+        whenEmptyCacheOnSave();
         List<Bar> expected = ModelPrototype.loadBars("/bars/BarCacheTestData.json");
         doReturn(expected).when(fallbackBarCache).getOneDayOfTicksAsBar(criteria, paths);
-        doReturn(new PutObjectResult()).when(s3).putObject(putRequestCaptor.capture());
+        whenSaveCacheOk();
 
         List<Bar> bar = barCache.getOneDayOfTicksAsBar(criteria, paths);
 
         assertThat(bar.size()).isGreaterThan(0);
         verify(fallbackMock).createBarCache(validator, tickSearch);
-        // twice as we check around sync lock.
-        verify(s3, times(2)).doesObjectExist(eq(bucketName), anyString());
+        verifyS3CacheFetch();
+        verifyS3CacheCheck();
         verify(fallbackBarCache).getOneDayOfTicksAsBar(criteria, paths);
-        PutObjectRequest request = putRequestCaptor.getValue();
-        assertThat(request.getBucketName()).isEqualTo(bucketName);
-        assertThat(request.getKey()).startsWith("bars/M10/EURUSD/2019/05/07.json");
-        assertThat(request.getMetadata().getContentType()).isEqualTo("application/json");
-        verify(s3).putObject(request);
-        assertThat(barCache.getHitCount()).isEqualTo(0);
-        assertThat(barCache.getMissCount()).isEqualTo(1);
-        assertThat(barCache.getRetrieveCount()).isEqualTo(1);
+        verifyS3CachePut();
+        verifyBarPutObjectRequest(putRequestCaptor.getValue(), barCache);
     }
 
-    private void assertPutRequest(PutObjectRequest request) {
-        assertThat(request.getBucketName()).isEqualTo(bucketName);
-        assertThat(request.getKey()).isEqualTo(dukascopyTickPath);
-        assertThat(request.getMetadata().getContentLength()).isGreaterThan(33000L);
-        assertThat(request.getMetadata().getContentType()).isEqualTo("application/octet-stream");
-        assertThat(request.getMetadata().getContentDisposition()).isEqualTo(dukascopyTickPath);
+    private void verifyS3CachePut() {
+        verify(s3).putObject(eq(putRequestCaptor.getValue()), any(RequestBody.class));
+    }
+
+
+    private void verifyS3CacheCheck() {
+        verify(s3).headObject(any(Consumer.class));
+    }
+
+    private void verifyS3CacheFetch() {
+        verify(s3).getObjectAsBytes(any(Consumer.class));
+    }
+
+    private void whenEmptyCacheOnSave() {
+        doThrow(NoSuchKeyException.class).when(s3).headObject(any(Consumer.class));
+    }
+
+    private void whenNotInCache() {
+        doThrow(NoSuchKeyException.class).when(s3).getObjectAsBytes(any(Consumer.class));
+    }
+
+    @SuppressWarnings("resource")
+    private void whenDukascopyCalledOk(InputStream input) throws IOException {
+        doReturn(input).when(fallbackMock).stream(dukascopyTickPath);
+    }
+
+    private void whenSaveCacheOk() {
+        doReturn(PutObjectResponse.builder().build()).when(s3)
+                                                     .putObject(putRequestCaptor.capture(), any(RequestBody.class));
+    }
+
+    private void verifyBarPutObjectRequest(Consumer<PutObjectRequest.Builder> consumer,
+                                           DukascopyCache.BarCache barCache) {
+        PutObjectRequest.Builder build = PutObjectRequest.builder();
+        consumer.accept(build);
+        PutObjectRequest request = build.build();
+        assertThat(request.bucket()).isEqualTo(bucketName);
+        assertThat(request.key()).startsWith("bars/M10/EURUSD/2020/05/07.json");
+        assertThat(request.contentType()).isEqualTo("application/json");
+        assertThat(barCache.getCacheStatistics().getHitCount()).isEqualTo(0);
+        assertThat(barCache.getCacheStatistics().getMissCount()).isEqualTo(1);
+        assertThat(barCache.getCacheStatistics().getRetrieveCount()).isEqualTo(1);
+    }
+
+    private void assertPutRequest(Consumer<PutObjectRequest.Builder> consumer) {
+        PutObjectRequest.Builder build = PutObjectRequest.builder();
+        consumer.accept(build);
+        PutObjectRequest request = build.build();
+        assertThat(request.bucket()).isEqualTo(bucketName);
+        assertThat(request.key()).isEqualTo(dukascopyTickPath);
+        assertThat(request.contentLength()).isGreaterThan(33000L);
+        assertThat(request.contentType()).isEqualTo("application/octet-stream");
+        assertThat(request.contentDisposition()).isEqualTo(dukascopyTickPath);
     }
 
     private void assertStreamResult(InputStream stream, int hits, int misses) {
         assertThat(stream).isNotNull();
-        assertThat(cache.getHitCount()).isEqualTo(hits);
-        assertThat(cache.getMissCount()).isEqualTo(misses);
-        assertThat(cache.getRetrieveCount()).isEqualTo(hits + misses);
+        assertThat(cache.getCacheStatistics().getHitCount()).isEqualTo(hits);
+        assertThat(cache.getCacheStatistics().getMissCount()).isEqualTo(misses);
+        assertThat(cache.getCacheStatistics().getRetrieveCount()).isEqualTo(hits + misses);
     }
 
-    private S3Object validTickObject() throws IOException {
-        S3Object s3Object = new S3Object();
-        s3Object.setObjectContent(validInputStream());
-        return s3Object;
-    }
-
-    private S3Object validBarListObject() {
-        S3Object s3Object = new S3Object();
-        s3Object.setObjectContent(validBarListInputStream());
-        return s3Object;
+    private static @NonNull ResponseBytes<GetObjectResponse> inputToResponse(InputStream inputStream) throws
+                                                                                                      IOException {
+        byte[] data = IOUtils.toByteArray(inputStream);
+        return ResponseBytes.fromByteArray(GetObjectResponse.builder()
+                                                            .contentLength((long) data.length)
+                                                            .build(),
+                                           data);
     }
 
     private InputStream validBarListInputStream() {
         return ModelPrototype.loadStream("/bars/BarCacheTestData.json");
     }
 
-    private InputStream validInputStream() throws IOException {
+    private InputStream validDukascopyTickInputStream() throws IOException {
         return new FileInputStream(DukascopyUtils.dukascopyClassResourceToTempFile("/" + dukascopyTickPath));
     }
 }
