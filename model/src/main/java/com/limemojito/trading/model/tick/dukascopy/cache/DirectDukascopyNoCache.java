@@ -42,7 +42,7 @@ import static java.lang.System.getProperty;
 @SuppressWarnings("UnstableApiUsage")
 public class DirectDukascopyNoCache implements DukascopyCache {
     /**
-     * Defaults to 1.0 ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (50X) if you hit the
+     * Defaults to 3.0 ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (50X) if you hit the
      * servers too hard, or they do a sneaky 30s delay before data is returned.  This has a LONG timeout if it occurs.
      */
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
@@ -84,7 +84,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     /**
      * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min or larger period.
      */
-    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "0.5"));
+    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "3.0"));
 
     /**
      * Error code used to signal a rate limit.

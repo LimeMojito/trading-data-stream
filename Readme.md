@@ -263,6 +263,7 @@ mvn versions:use-latest-releases -U
 * Java 25 and Spring Boot 4 support (Jackson 3).
 * Converted "null for missing" API calls to Optional.
 * Increased default beginning of time to 2020.
+* Increased default rate limit to 3ps as still being throttled by Dukascopy for some reason.
 
 ## 4.0.2
 
