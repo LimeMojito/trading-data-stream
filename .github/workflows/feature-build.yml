@@ -1,0 +1,22 @@
+name: Merge Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+    types: [ opened, reopened, ready_for_review, synchronize ]
+
+jobs:
+  oss-maven-workflow:
+    uses: LimeMojito/oss-maven-standards/.github/workflows/oss-feature-build.yml@master
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
