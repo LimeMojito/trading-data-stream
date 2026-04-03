@@ -1,4 +1,5 @@
 name: Lime Code Agent
+run-name: Lime Code Agent on ${{ github.repository }} for ${{ github.actor }} due to ${{ github.event_name }}
 
 on:
   issue_comment:
