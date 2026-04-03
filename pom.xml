@@ -20,29 +20,15 @@
 
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>trading-data-stream</artifactId>
-    <version>5.0.3-SNAPSHOT</version>
+    <version>5.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <parent>
         <groupId>com.limemojito.oss.standards</groupId>
         <artifactId>oss-maven-standards</artifactId>
-        <version>17.0.11</version>
+        <version>17.0.15</version>
         <relativePath />
     </parent>
-
-    <properties>
-        <bitbucket.url>https://bitbucket.org/limemojito/trading-data-stream</bitbucket.url>
-        <git.url>git@bitbucket.org:limemojito/trading-data-stream.git</git.url>
-
-        <coverage.exclude.pattern.1>**Main</coverage.exclude.pattern.1>
-    </properties>
-
-    <name>Trading Data Streams</name>
-    <description>
-        Streams data from &lt;a href="https://www.dukascopy.com"&gt;Dukascopy Bank&lt;/a&gt; and converts to Tick and Bar data as streams.  Use AT YOUR
-        OWN RISK.   Use of this software does not imply financial advice, financial decisions should not be based on these tools, data or software.
-        Refer to Licence.txt and Data-Disclaimer in the repository for more details.
-    </description>
 
     <modules>
         <module>model</module>
@@ -50,4 +36,36 @@
         <module>cache-primer</module>
     </modules>
 
+    <properties>
+        <git.project.slug>LimeMojito/trading-data-stream</git.project.slug>
+        <coverage.exclude.pattern.1>**Main</coverage.exclude.pattern.1>
+    </properties>
+
+    <description>
+        Streams data from &lt;a href="https://www.dukascopy.com"&gt;Dukascopy Bank&lt;/a&gt; and converts to Tick and Bar data as streams.  Use AT YOUR
+        OWN RISK.   Use of this software does not imply financial advice, financial decisions should not be based on these tools, data or software.
+        Refer to Licence.txt and Data-Disclaimer in the repository for more details.
+    </description>
+    <name>${project.artifactId}</name>
+    <url>${github.url}</url>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>Lime Mojito Pty Ltd</id>
+            <name>Development Group</name>
+            <email>sales@limemojito.com</email>
+            <timezone>+10</timezone>
+            <organization>Lime Mojito Pty Ltd</organization>
+            <organizationUrl>${lime.website.url}</organizationUrl>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
 </project>
