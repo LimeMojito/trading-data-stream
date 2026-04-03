@@ -12,7 +12,7 @@ Library
 <dependency>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>model</artifactId>
-    <version>5.0.0</version>
+    <version>5.0.2</version>
 </dependency>
 ```
 
@@ -83,7 +83,7 @@ this produces the model jar, example-cli and a cache primer application.
 *note* that files are cached locally in ~/.dukascopy-cache. See LocalDukascopyCache.java for details.
 
 ```shell
-java -jar example-cli/target/example-cli-5.0.0.jar --symbol=NZDUSD --period=M5 \
+java -jar example-cli/target/example-cli-5.0.2.jar --symbol=NZDUSD --period=M5 \
   --start=2018-01-02T00:00:00Z --end=2018-01-02T00:59:59Z --output=test-nz.csv  
 ```
 
@@ -95,7 +95,7 @@ See S3DukascopyCache.java and the chain configuration in DataStreamCli.java for 
 
 ```shell
 aws s3 mb s3://test-tick-bucket
-java -jar example-cli/target/example-cli-5.0.0.jar --spring.profiles.active=s3 \
+java -jar example-cli/target/example-cli-5.0.2.jar --spring.profiles.active=s3 \
   --bucket-name=test-tick-bucket --symbol=AUDUSD --period=M5 --start=2018-01-02T00:00:00Z \
   --end=2018-01-02T00:59:59Z --output=test-au.csv  
 ```
@@ -103,7 +103,7 @@ java -jar example-cli/target/example-cli-5.0.0.jar --spring.profiles.active=s3 \
 ## Prime a local cache with AUDUSD and EURUSD 2 months
 
 ```shell
-java -jar cache-primer/target/cache-primer-5.0.0.jar --symbol=AUDUSD --symbol EURUSD \
+java -jar cache-primer/target/cache-primer-5.0.2.jar --symbol=AUDUSD --symbol EURUSD \
   --start=2018-01-01T00:00:00Z --end=2018-03-01T00:59:59Z  
 ```
 
@@ -114,7 +114,7 @@ See S3DukascopyCache.java and the chain configuration in CachePrimer.java for de
 
 ```shell
 aws s3 mb s3://test-tick-bucket
-java -jar cache-primer/target/cache-primer-5.0.0.jar --spring.profiles.active=s3 \
+java -jar cache-primer/target/cache-primer-5.0.2.jar --spring.profiles.active=s3 \
   --bucket-name=test-tick-bucket --symbol=AUDUSD --symbol EURUSD \
   --start=2018-01-01T00:00:00Z --end=2018-03-01T00:59:59Z  
 ```
@@ -151,7 +151,7 @@ Run on an M1 Max with 100MB internet retrieving 559 M10 bars. Your performance m
 Worst case is dependent on how many days of H1 tick files are required to answer query.
 
 ```shell
-java -jar example-cli/target/example-cli-5.0.0.jar --symbol=EURUSD --period=M10 \
+java -jar example-cli/target/example-cli-5.0.2.jar --symbol=EURUSD --period=M10 \
 --start="2019-05-07T00:00:00Z" --end="2019-05-11T00:00:00Z" --output=./test.csv
 ```
 
@@ -255,127 +255,3 @@ mvn versions:use-latest-releases -U
 ```
 
 ---
-
-# Changes
-
-## 5.0.0
-
-* Java 25 and Spring Boot 4 support (Jackson 3).
-* Converted "null for missing" API calls to Optional.
-* Increased default beginning of time to 2020.
-* Increased default rate limit to 3ps as still being throttled by Dukascopy for some reason.
-
-## 4.0.2
-
-* Adjust the Dukascopy rate limit for multiple retrievals. Needs to be < 1 ps to not generate rate limit HTTP
-  exceptions.
-* Updated HTTP retry for 503 error code.
-
-## 4.0.1
-
-* OSS deployment fixes.
-
-## 4.0.0
-
-* Java 21 as a minimum requirement. Spring support library upgrades. OSS test library updates and API changes.
-* Severely reduced Dukascopy rate limiter to 1ps as 10ps was too aggressive and lead to Dukascopy throttling without 500
-  throws.
-* Dukascopy rate throttling has changed to be 30 second limiting on "high" request rates without error throws. This has
-  been reverse-engineered as there is no documentation. The old three times retry on code 500 behavior has been
-  preserved but with a thirty second exponential backoff.
-* Extra debugging logs for tracing rate limiting.
-* MarketStatus check to not request download of data outside FX global market hours.
-* Used configuration to reduce timeout testing to 1s rather than default 30s for production use.
-
-## 3.0.0
-
-* Java 17 as a minimum requirement. Spring support library upgrades.
-
-## 2.1.3
-
-* TradingInputJsonStreams now supports a visitor when loading a stream from json data.
-
-## 2.1.2
-
-* Added an example spring configuration.
-
-## 2.1.1
-
-* Library updates.
-
-## 2.1.0
-
-### Breaking API changes
-
-* Moved generic stream classes into trading.model.streams package.
-* There are some minor API changes such as adding IOException to close methods where missed.
-
-### Other Changes
-
-* Reworked stream model and produced a set of generic input stream utilities in trading.model.stream.
-* Added a stream Collection method to TradingJsonStreams, prefer the InputStream version for efficiency.
-* trading.model.stream.TradingInputStreamMapper produces generic streams and transforms for any MODEL.
-* trading.model.stream.TradingInputStreamMapper has overloads for onClose Runnable for cleanup operations.
-
-## 2.0.5
-
-* Spotted fix for hasNext in TradingInputJsonStreams. Fix ported from closed source.
-
-## 2.0.4
-
-* Correct aggregation bug in count before and count after bar searches. A duplicate bar may have been included in
-  streams due to
-  some end searching being inclusive.
-
-## 2.0.3
-
-* Correct write bug in JSON stream output that fails for large files with early close due to Jackson auto close.
-
-## 2.0.2
-
-* Support for streaming JSON file formats (as arrays) using TradingInputJsonStreams. Relies on Jackson.
-
-## 2.0.1
-
-* Added locking around local and s3 cache usage for multithreaded scenarios.
-
-## 2.0.0
-
-### Breaking API changes
-
-* Added bar caching that alters the cache storage and cache classes. Storage is backwards compatible however
-  the construction of the caches has altered. Bar Caching produced repeated aggregations at 240X faster in our example
-  in technical notes.
-* Due to bar caching tick visitors on aggregation queries are no longer supported.
-* Tick search functions **are** still supported for tick visitors.
-
-### Other changes
-
-* Added a read only json property to models with the model version (1.0).
-* Split DukascopySearch implementation into Tick and Bar searches (backward compatible).
-* Local cache can have the cache directory set via an alternate constructor.
-* trading-data-stream development no longer deletes the default cache location.
-
-## 1.2.0
-
-* Improved CSV model by introducing a base class that can be extended for other projects.
-
-## 1.1.0
-
-* Stop searches at the Beginning of Time - arbitrarily defaulted to be 2010-01-01T00:00:00Z.
-* Allow configuration of the Beginning of Time.
-* Aggregate for a number of bars before a given instant.
-* Aggregate for a number of bars after a given instant.
-* Added delayed n-retry with exponential backoff on Dukascopy IO failure. Defaults to 3X and 2 second.
-* Upped the rate limit after discovering 500s are occasional errors on empty paths.
-* Added a cache primer application to test load limits (concurrent requests).
-
-## 1.0.0
-
-* Initial release to open source.
-* Search ticks by symbol, time range,
-* Aggregate bars by time range.
-* Convert models (Tick, Bar) to csv.
-* Cache dukascopy files Direct No Cache, Local Cache and S3 Cache.
-* Combine caches into cache chains such as Local -> S3 -> Direct.
-* Example CLI
