@@ -1,4 +1,4 @@
-name: Merge Build
+name: Feature Build
 
 on:
   workflow_dispatch:

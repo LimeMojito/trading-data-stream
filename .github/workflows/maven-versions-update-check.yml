@@ -1,4 +1,4 @@
-name: Maven Versions Update
+name: Versions Update
 
 on:
   workflow_dispatch:

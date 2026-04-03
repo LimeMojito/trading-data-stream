@@ -1,0 +1,54 @@
+name: Lime Code Agent
+
+on:
+  issue_comment:
+    types: [ created ]
+  pull_request_review_comment:
+    types: [ created ]
+  issues:
+    types: [ assigned ]
+  pull_request_review:
+    types: [ submitted ]
+  workflow_dispatch:
+    # fancy Jira space name replacement: {{issue.project.name.toLowerCase().replaceAll(" ", "-").urlEncode()}}
+    inputs:
+      action:
+        description: Action to perform
+        required: true
+        type: choice
+        options:
+          - jira_event
+      issue_key:
+        description: 'Jira issue key (e.g., TEST-1)'
+        required: true
+        type: string
+      issue_summary:
+        description: 'Jira issue summary/title'
+        required: true
+        type: string
+      issue_description:
+        description: 'Jira issue description'
+        required: false
+        type: string
+      issue_comments:
+        description: 'Jira issue comments'
+        required: false
+      issue_attachments:
+        description: 'Jira issue attachments'
+        required: false
+      trigger_comment:
+        description: 'Comment that triggered Junie (used as user instruction)'
+        required: false
+        type: string
+
+jobs:
+  call-lime-code-agent:
+    uses: LimeMojito/oss-maven-standards/.github/workflows/oss-lime-code-agent.yml@master
+    secrets: inherit
+    permissions:
+      id-token: write
+      contents: write      # Required to create branches, make commits, and push changes
+      pull-requests: write # Required to create PRs, add comments to PRs, and update PR status
+      issues: write        # Required to add comments to issues and update issue metadata
+      checks: read         # Optional: needed for CI failure analysis with MCP servers
+      actions: read        # Optional: needed for CI failure analysis with MCP servers (to fetch logs)
