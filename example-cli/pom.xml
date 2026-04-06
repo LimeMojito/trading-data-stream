@@ -29,7 +29,7 @@
     <parent>
         <groupId>com.limemojito.oss.standards</groupId>
         <artifactId>spring-boot-development</artifactId>
-        <version>17.0.15</version>
+        <version>17.0.17</version>
         <relativePath/>
     </parent>
 
