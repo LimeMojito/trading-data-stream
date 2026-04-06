@@ -255,3 +255,7 @@ mvn versions:use-latest-releases -U
 ```
 
 ---
+
+# Latest Changes
+
+See [CHANGELOG.md](CHANGELOG.md)

@@ -1,3 +1,7 @@
+## 5.0.3
+
+- Updated library versions in pom.xml
+
 ## 5.0.2
 
 - Updated library versions in pom.xml
