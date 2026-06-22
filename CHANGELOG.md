@@ -1,3 +1,7 @@
+## 5.0.12
+
+- Updated versions and security patches.
+
 ## 5.0.11
 
 - Updated versions and security patches.
