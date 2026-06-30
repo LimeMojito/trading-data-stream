@@ -1,3 +1,7 @@
+## 5.0.14.40
+
+- Change cron schedule to run on the first of the month.
+
 ## 5.0.13
 
 - Updated versions and security patches.
