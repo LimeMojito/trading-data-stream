@@ -3,8 +3,8 @@ name: Versions Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: "25 17 * * 1"
-    # at 5:25PM GMT or 3:25AM (+1) AEST on a Monday
+    - cron: "25 17 1 * *"
+    # at 5:25PM GMT or 3:25AM (+1) AEST on the first of the month.
 
 
 jobs:
