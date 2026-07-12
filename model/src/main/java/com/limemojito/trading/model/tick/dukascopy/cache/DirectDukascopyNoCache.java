@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.net.URI;
 
 import static com.limemojito.trading.model.CacheStatistics.STAT_MISS;
@@ -179,14 +180,18 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     }
 
     private static boolean checkExceptionForRateLimitInfo(IOException e) {
+        if (e instanceof SocketException) {
+            return true;
+        }
         if (e.getMessage() != null) {
             final String errorMessage = e.getMessage();
             log.debug("Server connection error message: {}", errorMessage);
-            //noinspection SpellCheckingInspection
             return errorMessage.contains("500")
-                    || errorMessage.contains("503")
+                    || errorMessage.contains("501")
                     || errorMessage.contains("502")
-                    || errorMessage.contains("onnection reset");
+                    || errorMessage.contains("503")
+                    || errorMessage.contains("504")
+                    ;
         }
         return false;
     }
