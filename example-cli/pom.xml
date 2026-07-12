@@ -23,15 +23,29 @@
     <name>${project.artifactId}</name>
     <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
     <artifactId>example-cli</artifactId>
-    <version>5.0.14-SNAPSHOT</version>
+    <version>6.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>com.limemojito.oss.standards</groupId>
         <artifactId>spring-boot-development</artifactId>
-        <version>17.0.28</version>
+        <version>18.0.300</version>
         <relativePath/>
     </parent>
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- Do not upload large artifacts to central -->
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <!-- Keep the same version used in your root POM -->
+                <configuration>
+                    <skipPublishing>true</skipPublishing>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <properties>
         <!-- This is for demo purposes -->
@@ -47,7 +61,7 @@
         <dependency>
             <groupId>com.limemojito.oss.trading.trading-data-stream</groupId>
             <artifactId>model</artifactId>
-            <version>5.0.14-SNAPSHOT</version>
+            <version>6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
