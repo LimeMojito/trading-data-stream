@@ -25,11 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +35,7 @@ import static com.limemojito.trading.model.MarketStatus.Status.OPEN;
 import static java.lang.String.format;
 import static java.time.LocalTime.MIDNIGHT;
 import static java.time.ZoneOffset.UTC;
-import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
-import static java.time.temporal.TemporalAdjusters.firstDayOfYear;
-import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
-import static java.time.temporal.TemporalAdjusters.lastDayOfYear;
+import static java.time.temporal.TemporalAdjusters.*;
 import static java.util.stream.Collectors.groupingBy;
 
 /**
@@ -61,6 +54,24 @@ public class DukascopyPathGenerator {
 
     private final MarketStatus marketStatus;
     private final ZoneId utc = ZoneId.of("UTC");
+
+    /**
+     * Converts the supplied Dukascopy hourly file path to an instant in UTC
+     *
+     * @param dukascopyPath Path to convert in %s/%d/%s/%s/%sh_ticks.bi5 format
+     * @return An Instant parsed from the supplied path
+     */
+    @SuppressWarnings("MagicNumber")
+    public Instant pathToInstant(String dukascopyPath) {
+        String numberData = dukascopyPath.substring(0, dukascopyPath.indexOf("h_ticks.bi5"));
+        String[] parts = numberData.split("/");
+        final String instant = "%s-%02d-%sT%s:00:00Z".formatted(parts[1],
+                                                                Integer.parseInt(parts[2]) + 1,
+                                                                parts[3],
+                                                                parts[4]);
+        log.trace("Instant: {} parsed from path {}", instant, dukascopyPath);
+        return Instant.parse(instant);
+    }
 
     /**
      * Generate Dukascopy hourly file paths grouped by day for the given symbol and time range.

@@ -20,16 +20,21 @@ package com.limemojito.trading.model.tick.dukascopy.cache;
 import com.google.common.util.concurrent.RateLimiter;
 import com.limemojito.trading.model.CacheStatistics;
 import com.limemojito.trading.model.CacheStatistics.SimpleCacheStatistics;
+import com.limemojito.trading.model.MarketStatus;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyCache;
+import com.limemojito.trading.model.tick.dukascopy.DukascopyPathGenerator;
 import com.limemojito.trading.model.tick.dukascopy.DukascopyTickSearch;
+import jakarta.annotation.Nonnull;
 import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URI;
+import java.time.Instant;
 
 import static com.limemojito.trading.model.CacheStatistics.STAT_MISS;
 import static java.lang.Double.parseDouble;
@@ -92,12 +97,16 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     private static final int IO_BUFFER_SIZE = 32 * 1024;
     private static final RateLimiter RATE_LIMITER = RateLimiter.create(PERMITS_PER_SECOND);
     private final SimpleCacheStatistics cacheStatistics;
+    private final MarketStatus marketStatus;
+    private final DukascopyPathGenerator pathGenerator;
 
     /**
      * Creates a new direct Dukascopy fetch configuration with rate limiting.
      */
     public DirectDukascopyNoCache() {
-        cacheStatistics = new SimpleCacheStatistics(getClass().getSimpleName(), STAT_RETRY);
+        this.marketStatus = new MarketStatus();
+        this.pathGenerator = new DukascopyPathGenerator(marketStatus);
+        this.cacheStatistics = new SimpleCacheStatistics(getClass().getSimpleName(), STAT_RETRY);
         log.info("DirectDukascopyNoCache permits/s: {} retrySeconds: {} retryCount: {} url: {}",
                  PERMITS_PER_SECOND,
                  PAUSE_SECONDS,
@@ -112,19 +121,26 @@ public class DirectDukascopyNoCache implements DukascopyCache {
 
     /**
      * Open a buffered stream to the Dukascopy resource identified by the path, honoring the rate limiter
-     * and retry policy for transient server errors.
+     * and retry policy for transient server errors.  Note that the market must be open for the supplied path to be
+     * fetched from Dukascopy due to rate limiting.
      *
      * @param dukascopyPath path relative to the Dukascopy data root
      * @return buffered input stream to the remote resource
      * @throws IOException if the resource cannot be retrieved
+     * @see MarketStatus
      */
     @Override
     public InputStream stream(String dukascopyPath) throws IOException {
-        final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
-        // play nice with Dukascopy's free data.  And if you don't, they stop sending data.
-        BufferedInputStream stream = fetchWithRetry(url, 1);
-        cacheStatistics.incrementStat(STAT_MISS);
-        return stream;
+        if (marketIsOpen(dukascopyPath)) {
+            final DataSource url = new UrlDataSource(DUKASCOPY_URL + dukascopyPath);
+            // play nice with Dukascopy's free data.  And if you don't, they stop sending data.
+            BufferedInputStream stream = fetchWithRetry(url, 1);
+            cacheStatistics.incrementStat(STAT_MISS);
+            return stream;
+        } else {
+            log.debug("Empty stream is market is closed.");
+            return emptyStream();
+        }
     }
 
     /**
@@ -177,6 +193,15 @@ public class DirectDukascopyNoCache implements DukascopyCache {
                 throw e;
             }
         }
+    }
+
+    private boolean marketIsOpen(String dukascopyPath) {
+        Instant timeUtc = pathGenerator.pathToInstant(dukascopyPath);
+        return marketStatus.isOpen(timeUtc) == MarketStatus.Status.OPEN;
+    }
+
+    private static @Nonnull ByteArrayInputStream emptyStream() {
+        return new ByteArrayInputStream(new byte[0]);
     }
 
     private static boolean checkExceptionForRateLimitInfo(IOException e) {

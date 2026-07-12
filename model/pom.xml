@@ -95,6 +95,10 @@
             <artifactId>s3</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>

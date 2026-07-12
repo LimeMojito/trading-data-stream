@@ -31,6 +31,15 @@ public class DukascopyPathGeneratorTest {
     private final DukascopyPathGenerator generator = new DukascopyPathGenerator(new MarketStatus());
 
     @Test
+    public void shouldConvertToInstant() {
+        assertThat(generator.pathToInstant("EURUSD/2018/00/01/00h_ticks.bi5"))
+                .isEqualTo(Instant.parse("2018-01-01T00:00:00Z"));
+
+        assertThat(generator.pathToInstant("EURUSD/2023/05/14/22h_ticks.bi5"))
+                .isEqualTo(Instant.parse("2023-06-14T22:00:00Z"));
+    }
+
+    @Test
     public void shouldGeneratePathsForDayRange() {
         List<String> paths = generatePathsFor("2018-01-01T00:00:00Z", "2018-01-01T23:59:59Z");
 
