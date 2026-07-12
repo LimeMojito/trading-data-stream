@@ -54,26 +54,9 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
 
     /**
-     * Defaults to 30.0 s to pause if server 500 is encountered.  This may indicate that we are over rate.
-     * Exponential back-off over the number of retries.
-     *
-     * @see #PROP_RETRY_COUNT
-     */
-    public static final String PROP_RETRY = DirectDukascopyNoCache.class.getPackageName() + ".retrySeconds";
-
-    /**
      * Defaults to 3 attempts (exponential backoff).
-     *
-     * @see #PROP_RETRY
      */
     public static final String PROP_RETRY_COUNT = DirectDukascopyNoCache.class.getPackageName() + ".retryCount";
-
-    /**
-     * Defaults to 503.  This is the HTTP error code if we have become rate limited by Dukascopy.
-     *
-     */
-    public static final String PROP_RATE_LIMITED_ERROR = DirectDukascopyNoCache.class.getPackageName()
-            + ".rateLimitedError";
 
     /**
      * Defaults to <a href="https://datafeed.dukascopy.com/datafeed/">...</a> which plays nicely with Dukascopy.
@@ -91,11 +74,12 @@ public class DirectDukascopyNoCache implements DukascopyCache {
      * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min or larger period.
      */
     private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "0.9"));
-    private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "30.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
     private static final int IO_BUFFER_SIZE = 32 * 1024;
     private static final RateLimiter RATE_LIMITER = RateLimiter.create(PERMITS_PER_SECOND);
+    public static final int VERY_LONG_PAUSE = 60;
+    public static final int LONG_PAUSE = 30;
     private final SimpleCacheStatistics cacheStatistics;
     private final MarketStatus marketStatus;
     private final DukascopyPathGenerator pathGenerator;
@@ -107,9 +91,8 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         this.marketStatus = new MarketStatus();
         this.pathGenerator = new DukascopyPathGenerator(marketStatus);
         this.cacheStatistics = new SimpleCacheStatistics(getClass().getSimpleName(), STAT_RETRY);
-        log.info("DirectDukascopyNoCache permits/s: {} retrySeconds: {} retryCount: {} url: {}",
+        log.info("DirectDukascopyNoCache permits/s: {} retryCount: {} url: {}",
                  PERMITS_PER_SECOND,
-                 PAUSE_SECONDS,
                  RETRY_COUNT,
                  DUKASCOPY_URL);
     }
@@ -185,8 +168,9 @@ public class DirectDukascopyNoCache implements DukascopyCache {
             log.info("Loading from {}", url);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
         } catch (IOException e) {
-            if (checkExceptionForRateLimitInfo(e) && callCount <= RETRY_COUNT) {
-                waitForRetry(e, callCount);
+            final int pauseSeconds = checkExceptionForRateLimitInfo(e, callCount);
+            if (pauseSeconds > 0 && callCount <= RETRY_COUNT) {
+                waitForRetry(e, pauseSeconds);
                 cacheStatistics.incrementStat(STAT_RETRY);
                 return fetchWithRetry(url, ++callCount);
             } else {
@@ -204,31 +188,43 @@ public class DirectDukascopyNoCache implements DukascopyCache {
         return new ByteArrayInputStream(new byte[0]);
     }
 
-    private static boolean checkExceptionForRateLimitInfo(IOException e) {
+    /**
+     * Supply a backoff base time according to the response from server.
+     * * 503 - 60 seconds
+     * * 504 - 120 seconds
+     * Other errors - configured pause seconds
+     *
+     * @param e exception
+     * @return seconds to backoff or -1 for unknown state.
+     */
+    private static int checkExceptionForRateLimitInfo(IOException e, int callCount) {
         if (e instanceof SocketException) {
-            return true;
+            log.warn("Server connection socket failure: {}", e.getMessage());
+            return VERY_LONG_PAUSE * callCount;
         }
         if (e.getMessage() != null) {
             final String errorMessage = e.getMessage();
-            log.debug("Server connection error message: {}", errorMessage);
-            return errorMessage.contains("500")
+            log.warn("Server connection error message: {}", errorMessage);
+            if (errorMessage.contains("500")
                     || errorMessage.contains("501")
                     || errorMessage.contains("502")
-                    || errorMessage.contains("503")
-                    || errorMessage.contains("504");
+                    || errorMessage.contains("503")) {
+                return LONG_PAUSE * callCount;
+            } else if (errorMessage.contains("504")) {
+                return VERY_LONG_PAUSE * callCount;
+            }
         }
-        return false;
+        log.warn("Unexpected failure", e);
+        return VERY_LONG_PAUSE * callCount;
     }
 
-    private static void waitForRetry(IOException e, int callCount) throws IOException {
-        final double pauseSeconds = PAUSE_SECONDS * callCount;
+    private static void waitForRetry(IOException e, double pauseSeconds) throws IOException {
         try {
-            log.info("Dukascopy server error: {}", e.getMessage());
-            log.warn("pausing for {}s to retry", pauseSeconds);
+            log.info("pausing for {}s to retry", pauseSeconds);
             final double toMilliseconds = 1000.0;
             Thread.sleep((long) (pauseSeconds * toMilliseconds));
         } catch (InterruptedException ex) {
-            log.info("Interrupted wait of {}s", pauseSeconds);
+            log.warn("Interrupted wait of {}s", pauseSeconds);
             throw e;
         }
     }
