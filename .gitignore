@@ -3,4 +3,4 @@ atlassian-ide-plugin.xml
 .idea
 target
 *.csv
-
+.junie

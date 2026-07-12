@@ -55,7 +55,7 @@ public class DirectDukascopyBarNoCache implements DukascopyCache.BarCache {
     /**
      * Convert days of tick data paths to a list of bars.
      *
-     * @param criteria   bar query to fullfill
+     * @param criteria   bar query to fulfill
      * @param dayOfPaths Day of paths to retrieve (should be up to 24 one-hour tick data files).
      * @return the list of bars formed.
      * @throws IOException              on an IO error.

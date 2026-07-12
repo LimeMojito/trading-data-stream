@@ -42,7 +42,7 @@ import static java.lang.System.getProperty;
 @SuppressWarnings("UnstableApiUsage")
 public class DirectDukascopyNoCache implements DukascopyCache {
     /**
-     * Defaults to 3.0 ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (50X) if you hit the
+     * Defaults to 2.0 ps which plays nicely with Dukascopy. Otherwise, they simply stop responding (50X) if you hit the
      * servers too hard, or they do a sneaky 30s delay before data is returned.  This has a LONG timeout if it occurs.
      */
     public static final String PROP_PERMITS = DirectDukascopyNoCache.class.getPackageName() + ".permits";
@@ -84,13 +84,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
     /**
      * 2025/11/10 Note there are many ways to get rate limited. Smells like the limit is requests per min or larger period.
      */
-    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "3.0"));
-
-    /**
-     * Error code used to signal a rate limit.
-     */
-    private static final String RATE_LIMITED = getProperty(PROP_RATE_LIMITED_ERROR, "503");
-
+    private static final double PERMITS_PER_SECOND = parseDouble(getProperty(PROP_PERMITS, "2.0"));
     private static final double PAUSE_SECONDS = parseDouble(getProperty(PROP_RETRY, "30.0"));
     private static final int RETRY_COUNT = parseInt(getProperty(PROP_RETRY_COUNT, "3"));
     private static final String DUKASCOPY_URL = getProperty(PROP_URL, "https://datafeed.dukascopy.com/datafeed/");
@@ -174,7 +168,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
             log.info("Loading from {}", url);
             return new BufferedInputStream(url.openStream(), IO_BUFFER_SIZE);
         } catch (IOException e) {
-            if (e.getMessage() != null && e.getMessage().contains(RATE_LIMITED) && callCount <= RETRY_COUNT) {
+            if (checkExceptionForRateLimitInfo(e) && callCount <= RETRY_COUNT) {
                 waitForRetry(e, callCount);
                 cacheStatistics.incrementStat(STAT_RETRY);
                 return fetchWithRetry(url, ++callCount);
@@ -182,6 +176,19 @@ public class DirectDukascopyNoCache implements DukascopyCache {
                 throw e;
             }
         }
+    }
+
+    private static boolean checkExceptionForRateLimitInfo(IOException e) {
+        if (e.getMessage() != null) {
+            final String errorMessage = e.getMessage();
+            log.debug("Server connection error message: {}", errorMessage);
+            //noinspection SpellCheckingInspection
+            return errorMessage.contains("500")
+                    || errorMessage.contains("503")
+                    || errorMessage.contains("502")
+                    || errorMessage.contains("onnection reset");
+        }
+        return false;
     }
 
     private static void waitForRetry(IOException e, int callCount) throws IOException {
