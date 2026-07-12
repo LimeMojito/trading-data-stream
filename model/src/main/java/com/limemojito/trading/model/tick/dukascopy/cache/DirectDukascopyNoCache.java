@@ -190,8 +190,7 @@ public class DirectDukascopyNoCache implements DukascopyCache {
                     || errorMessage.contains("501")
                     || errorMessage.contains("502")
                     || errorMessage.contains("503")
-                    || errorMessage.contains("504")
-                    ;
+                    || errorMessage.contains("504");
         }
         return false;
     }
